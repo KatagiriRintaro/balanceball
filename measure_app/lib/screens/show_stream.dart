@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:measure_app/measure/magnetometer_measure_controller.dart';
+import 'package:measure_app/function/magnetometer_measure_controller.dart';
 import 'package:measure_app/widget/mag_stream_data_graph.dart';
 
 class ShowStreamData extends StatefulWidget {
