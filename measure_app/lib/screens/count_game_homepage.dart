@@ -145,27 +145,21 @@ class CountGameHomepageState extends State<CountGameHomepage> {
 
   void _sendMeasureData() async {
     try {
-      if (_wsManager != null) {
-        print('WebSocket接続確認: 送信準備中');
+      // データ送信
+      _wsManager.sendData(measurementDataJson);
 
-        // データ送信
-        _wsManager.sendData(measurementDataJson);
+      // サーバからの応答を待機
+      _wsManager.receiveData()?.listen((response) {
+        print('受信データ: $response');
+        // decodedData = json.decode(response);
 
-        // サーバからの応答を待機
-        _wsManager.receiveData()?.listen((response) {
-          print('受信データ: $response');
-          // decodedData = json.decode(response);
+        // final strData = decodedData['data'];
+        // resultData = json.decode(strData);
 
-          // final strData = decodedData['data'];
-          // resultData = json.decode(strData);
-
-          setState(() {}); // UIを更新
-        }, onError: (error) {
-          print('エラーが発生しました: $error');
-        });
-      } else {
-        print('WebSocket接続がありません');
-      }
+        setState(() {}); // UIを更新
+      }, onError: (error) {
+        print('エラーが発生しました: $error');
+      });
     } catch (e) {
       print('エラーが発生しました: $e');
     } finally {
