@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:measure_app/measure/magnetometer_measure_controller.dart';
+import 'package:measure_app/function/magnetometer_measure_controller.dart';
 import 'package:measure_app/widget/mag_stream_data_graph.dart';
 import 'package:measure_app/widget/operation_button.dart';
 import 'package:measure_app/widget/recognition_result_table.dart';

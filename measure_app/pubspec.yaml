@@ -11,6 +11,7 @@ dependencies:
   video_player: ^2.9.1
   fl_chart: ^0.69.0
   http: ^0.13.3
+  web_socket_channel: ^2.2.0
   flutter:
     sdk: flutter
   # sensors_plus: ^6.0.1
@@ -24,7 +25,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/videos/
-<<<<<<< HEAD
   fonts:
     - family: NotoSansJP
       fonts:
@@ -34,5 +34,3 @@ flutter:
         - asset: fonts/NotoSansJP-Medium.otf
         - asset: fonts/NotoSansJP-Regular.otf
         - asset: fonts/NotoSansJP-Thin.otf
-=======
->>>>>>> c77b0830baa7108ec8cbb14edce9792e4a122857

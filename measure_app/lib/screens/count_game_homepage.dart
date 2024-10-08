@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:measure_app/measure/magnetometer_measure_controller.dart';
-import 'package:measure_app/function/websocket_connect.dart';
+import 'package:measure_app/function/magnetometer_measure_controller.dart';
+import 'package:measure_app/function/websocketManager.dart';
 import 'package:measure_app/widget/operation_button.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -19,12 +18,14 @@ class CountGameHomepageState extends State<CountGameHomepage> {
   bool _isMeasuring = false;
   late Timer _timer;
   late Timer _updateTimer;
-  int _countdown = 5;
+  int _countdown = 2;
   final int _countdownseconds = 1;
-  final int _measurementTime = 300;
+  final int _measurementTime = 2;
   final int _sendInterval = 3;
   final MagnetometerMeasureController _magnetometerController =
       MagnetometerMeasureController();
+  final WebSocketManager _wsManager =
+      WebSocketManager(url: 'ws://172.16.4.31:8765/');
   final List<List<double>> _measurementData = [];
   String measurementDataJson = ' ';
   Map<String, dynamic> decodedData = {};
@@ -37,11 +38,13 @@ class CountGameHomepageState extends State<CountGameHomepage> {
     _timer.cancel();
     _updateTimer.cancel();
     _magnetometerController.stopMeasurement();
+    // _wsManager.disconnect();
     super.dispose();
   }
 
   void _startCountdown() {
     setState(() {
+      _wsManager.connect();
       _isCounting = true;
     });
 
@@ -61,7 +64,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
     setState(() {
       _isCounting = false;
       _isMeasuring = true;
-      _countdown = 5;
+      _countdown = 2;
 
       _magnetometerController.startMeasurement();
 
@@ -79,13 +82,13 @@ class CountGameHomepageState extends State<CountGameHomepage> {
         });
       });
 
-      Timer.periodic(Duration(seconds: _sendInterval), (timer) {
-        if (!_isMeasuring) {
-          timer.cancel();
-        } else {
-          _sendMeasureData();
-        }
-      });
+      // Timer.periodic(Duration(seconds: _sendInterval), (timer) {
+      //   if (!_isMeasuring) {
+      //     timer.cancel();
+      //   } else {
+      //     _sendMeasureData();
+      //   }
+      // });
     });
 
     Future.delayed(Duration(seconds: _measurementTime), () {
@@ -100,39 +103,68 @@ class CountGameHomepageState extends State<CountGameHomepage> {
 
       final measurementDataForJson = measurementData.map((data) {
         return [
-          (data[0] as DateTime)
-              .toIso8601String()
-              .replaceAll('T', ' '), // DateTimeをISO8601形式の文字列に変換
           data[1], // x
           data[2], // y
           data[3], // z
-          data[4],
         ];
       }).toList();
 
       measurementDataJson = json.encode(measurementDataForJson);
+      print(measurementDataJson);
+      print(measurementDataJson.runtimeType);
+      _sendMeasureData();
     });
   }
 
+  // void _sendMeasureData() async {
+  //   try {
+  //     final response = await http.post(
+  //       Uri.parse('http://172.16.4.31:5000/'),
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: measurementDataJson,
+  //     );
+  //     if (response.statusCode == 200) {
+  //       // print('データ送信成功');
+  //       decodedData = json.decode(response.body);
+
+  //       final strData = decodedData['data'];
+  //       resultData = json.decode(strData);
+
+  //       setState(() {});
+  //     } else {
+  //       print('データ送信失敗: ${response.statusCode}');
+  //     }
+  //   } catch (e) {
+  //     print('エラーが発生しました: $e');
+  //   } finally {
+  //     measurementDataJson = '';
+  //   }
+  // }
+
   void _sendMeasureData() async {
     try {
-      final response = await http.post(
-        Uri.parse('http://172.16.4.31:5000/'),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: measurementDataJson,
-      );
-      if (response.statusCode == 200) {
-        // print('データ送信成功');
-        decodedData = json.decode(response.body);
+      if (_wsManager != null) {
+        print('WebSocket接続確認: 送信準備中');
 
-        final strData = decodedData['data'];
-        resultData = json.decode(strData);
+        // データ送信
+        _wsManager.sendData(measurementDataJson);
 
-        setState(() {});
+        // サーバからの応答を待機
+        _wsManager.receiveData()?.listen((response) {
+          print('受信データ: $response');
+          // decodedData = json.decode(response);
+
+          // final strData = decodedData['data'];
+          // resultData = json.decode(strData);
+
+          setState(() {}); // UIを更新
+        }, onError: (error) {
+          print('エラーが発生しました: $error');
+        });
       } else {
-        print('データ送信失敗: ${response.statusCode}');
+        print('WebSocket接続がありません');
       }
     } catch (e) {
       print('エラーが発生しました: $e');
@@ -154,7 +186,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
                 style:
                     const TextStyle(fontSize: 50, fontWeight: FontWeight.bold),
               )
-            : (_isMeasuring
+            : _isMeasuring
                 ? const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -171,7 +203,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
                       OperationButton(
                           onPressed: _startCountdown, buttonText: '計測開始'),
                     ],
-                  )),
+                  ),
       ),
     );
   }

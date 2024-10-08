@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WebSocketManager {
@@ -30,8 +29,10 @@ class WebSocketManager {
     if (_channel != null && data.isNotEmpty) {
       _channel!.sink.add(data);
       print('データ送信中: $data');
-    } else {
-      print('データ送信失敗: 接続されていないか、データが空です');
+    } else if (_channel == null) {
+      print('データ送信失敗: WebSocketが接続されていません');
+    } else if (data.isEmpty) {
+      print('データ送信失敗: 送信データが空です');
     }
   }
 
