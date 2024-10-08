@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:measure_app/measure/magnetometer_measure_controller.dart';
+import 'package:measure_app/function/websocket_connect.dart';
 import 'package:measure_app/widget/operation_button.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 class CountGameHomepage extends StatefulWidget {
   const CountGameHomepage({super.key});
@@ -27,6 +29,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
   String measurementDataJson = ' ';
   Map<String, dynamic> decodedData = {};
   List<dynamic> resultData = [];
+  WebSocketChannel? channel;
 
   @override
   void dispose() {
