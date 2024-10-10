@@ -114,11 +114,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2346318528986589432, guid: 1a0a4111d94b1074fad620175a8c66e7, type: 3}
       propertyPath: m_Name
-      value: RightBottom
+      value: LeftBottom
       objectReference: {fileID: 0}
     - target: {fileID: 2346318528986589432, guid: 1a0a4111d94b1074fad620175a8c66e7, type: 3}
       propertyPath: m_TagString
-      value: RightBottom
+      value: LeftBottom
       objectReference: {fileID: 0}
     - target: {fileID: 8818649222327797483, guid: 1a0a4111d94b1074fad620175a8c66e7, type: 3}
       propertyPath: m_LocalPosition.x
@@ -246,11 +246,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2346318528986589432, guid: 1a0a4111d94b1074fad620175a8c66e7, type: 3}
       propertyPath: m_Name
-      value: LeftTop
+      value: RightTop
       objectReference: {fileID: 0}
     - target: {fileID: 2346318528986589432, guid: 1a0a4111d94b1074fad620175a8c66e7, type: 3}
       propertyPath: m_TagString
-      value: LeftTop
+      value: RightTop
       objectReference: {fileID: 0}
     - target: {fileID: 8818649222327797483, guid: 1a0a4111d94b1074fad620175a8c66e7, type: 3}
       propertyPath: m_LocalPosition.x
@@ -312,11 +312,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2346318528986589432, guid: 1a0a4111d94b1074fad620175a8c66e7, type: 3}
       propertyPath: m_Name
-      value: RightTop
+      value: LeftTop
       objectReference: {fileID: 0}
     - target: {fileID: 2346318528986589432, guid: 1a0a4111d94b1074fad620175a8c66e7, type: 3}
       propertyPath: m_TagString
-      value: RightTop
+      value: LeftTop
       objectReference: {fileID: 0}
     - target: {fileID: 8818649222327797483, guid: 1a0a4111d94b1074fad620175a8c66e7, type: 3}
       propertyPath: m_LocalPosition.x
@@ -378,11 +378,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2346318528986589432, guid: 1a0a4111d94b1074fad620175a8c66e7, type: 3}
       propertyPath: m_Name
-      value: LeftBottom
+      value: RightBottom
       objectReference: {fileID: 0}
     - target: {fileID: 2346318528986589432, guid: 1a0a4111d94b1074fad620175a8c66e7, type: 3}
       propertyPath: m_TagString
-      value: LeftBottom
+      value: RightBottom
       objectReference: {fileID: 0}
     - target: {fileID: 8818649222327797483, guid: 1a0a4111d94b1074fad620175a8c66e7, type: 3}
       propertyPath: m_LocalPosition.x
