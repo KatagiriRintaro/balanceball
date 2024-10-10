@@ -13,6 +13,9 @@ TagManager:
   - CenterTop
   - CenterMiddle
   - CenterBottom
+  - OnesPlace
+  - TensPlace
+  - HundredsPlace
   layers:
   - Default
   - TransparentFX
