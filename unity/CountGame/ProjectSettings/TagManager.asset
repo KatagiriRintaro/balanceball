@@ -3,7 +3,16 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - BlackNumberText
+  - LightNumberText
+  - LeftBottom
+  - LeftTop
+  - RightTop
+  - RightBottom
+  - CenterTop
+  - CenterMiddle
+  - CenterBottom
   layers:
   - Default
   - TransparentFX
