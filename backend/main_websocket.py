@@ -13,6 +13,8 @@ async def handle_client(websocket, path):
             # print(f'Received message: {message}')
             data = json.loads(message)
 
+            print(len(data))
+
             #データを送ったクライアントも含めて返す場合
             # 各クライアントにデータを送信するためのタスクを明示的に作成
             send_tasks = [asyncio.create_task(client.send(json.dumps(data))) for client in connected_clients]

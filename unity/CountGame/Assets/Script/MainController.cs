@@ -8,6 +8,7 @@ public class MainController : MonoBehaviour
 
     void Start()
     {
+        Debug.Log("Startメソッドが実行されました。");
         // WebSocketの初期化
         ws = new WebSocket("ws://172.16.4.31:8765/");
 
