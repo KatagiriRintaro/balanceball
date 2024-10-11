@@ -20,13 +20,17 @@ class CountGameHomepageState extends State<CountGameHomepage> {
   late Timer _updateTimer;
   int _countdown = 2;
   final int _countdownseconds = 1;
-  final int _measurementTime = 2;
-  final int _sendInterval = 3;
+  final int _measurementTime = 5;
+  final int _sendDataUnit = 1;
+  final int milliseconds = 10;
+  final double _slidingRate = 0.5;
+  int _sendCount = 0;
   final MagnetometerMeasureController _magnetometerController =
       MagnetometerMeasureController();
   final WebSocketManager _wsManager =
       WebSocketManager(url: 'ws://172.16.4.31:8765/');
-  final List<List<double>> _measurementData = [];
+  List<List<Object>> _measurementData = [];
+  List<List<dynamic>> _dataForSend = [];
   String measurementDataJson = ' ';
   Map<String, dynamic> decodedData = {};
   List<dynamic> resultData = [];
@@ -68,27 +72,76 @@ class CountGameHomepageState extends State<CountGameHomepage> {
 
       _magnetometerController.startMeasurement();
 
-      int milliseconds = 10;
       _updateTimer =
           Timer.periodic(Duration(milliseconds: milliseconds), (timer) {
         // 新しいデータを取得し、グラフを更新
         setState(() {
           // 計測データを追加
-          final newData = _magnetometerController.getLatestData();
+          final newData = _magnetometerController.getLatestAllData();
           // print(newData); // 最新データ取得
-          if (newData != null && newData.length == 4) {
-            _measurementData.add(newData);
+          if (newData.length == 5) {
+            _measurementData.add(newData.cast<Object>());
+            print(newData);
+            print("length ${_measurementData.length}");
+          }
+
+          if (_sendCount == 0 &&
+              _measurementData.length ==
+                  (_sendDataUnit * (1000 / milliseconds)).toInt()) {
+            print("One");
+            // _dataForSend = _measurementData
+            //     .map((innerList) => List<double>.from(innerList))
+            //     .toList();
+            final preDataForSend = _measurementData.map((data) {
+              return [
+                (data[0] as DateTime)
+                    .toIso8601String()
+                    .replaceAll('T', ' '), // DateTimeをISO8601形式の文字列に変換
+                data[1], // x
+                data[2], // y
+                data[3], // z
+                data[4],
+              ];
+            }).toList();
+            _dataForSend = preDataForSend
+                .map((innerList) => List<dynamic>.from(innerList))
+                .toList();
+            measurementDataJson = json.encode(_dataForSend);
+            _sendMeasureData();
+            measurementDataJson = "";
+            _sendCount += 1;
+          }
+
+          if (_measurementData.length ==
+              (_sendDataUnit * (1000 / milliseconds) * (1 + _slidingRate))
+                  .toInt()) {
+            print("Two");
+            final preDataForSend = _measurementData.map((data) {
+              return [
+                (data[0] as DateTime)
+                    .toIso8601String()
+                    .replaceAll('T', ' '), // DateTimeをISO8601形式の文字列に変換
+                data[1], // x
+                data[2], // y
+                data[3], // z
+                data[4],
+              ];
+            }).toList();
+            _dataForSend = preDataForSend
+                .sublist((_measurementData.length -
+                        _sendDataUnit * (1000 / milliseconds))
+                    .toInt())
+                .map((innerList) => List<dynamic>.from(innerList))
+                .toList();
+            measurementDataJson = json.encode(_dataForSend);
+            _measurementData = _measurementData.sublist(
+                (_sendDataUnit * (1000 / milliseconds) * _slidingRate).toInt());
+            _sendMeasureData();
+            measurementDataJson = "";
+            _sendCount += 1;
           }
         });
       });
-
-      // Timer.periodic(Duration(seconds: _sendInterval), (timer) {
-      //   if (!_isMeasuring) {
-      //     timer.cancel();
-      //   } else {
-      //     _sendMeasureData();
-      //   }
-      // });
     });
 
     Future.delayed(Duration(seconds: _measurementTime), () {
@@ -98,50 +151,27 @@ class CountGameHomepageState extends State<CountGameHomepage> {
 
       // 計測を終了し、グラフの更新も停止
       _updateTimer.cancel();
-      final measurementData = _magnetometerController.stopMeasurement();
+      _magnetometerController.stopShowMeasurement();
       // print('A$measurementData');
 
-      final measurementDataForJson = measurementData.map((data) {
-        return [
-          data[1], // x
-          data[2], // y
-          data[3], // z
-        ];
-      }).toList();
+      // final measurementDataForJson = measurementData.map((data) {
+      //   return [
+      //     (data[0] as DateTime)
+      //         .toIso8601String()
+      //         .replaceAll('T', ' '), // DateTimeをISO8601形式の文字列に変換
+      //     data[1], // x
+      //     data[2], // y
+      //     data[3], // z
+      //     data[4],
+      //   ];
+      // }).toList();
 
-      measurementDataJson = json.encode(measurementDataForJson);
-      print(measurementDataJson);
-      print(measurementDataJson.runtimeType);
-      _sendMeasureData();
+      // measurementDataJson = json.encode(measurementDataForJson);
+      // print(measurementDataJson);
+      // print(measurementDataJson.runtimeType);
+      // _sendMeasureData();
     });
   }
-
-  // void _sendMeasureData() async {
-  //   try {
-  //     final response = await http.post(
-  //       Uri.parse('http://172.16.4.31:5000/'),
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: measurementDataJson,
-  //     );
-  //     if (response.statusCode == 200) {
-  //       // print('データ送信成功');
-  //       decodedData = json.decode(response.body);
-
-  //       final strData = decodedData['data'];
-  //       resultData = json.decode(strData);
-
-  //       setState(() {});
-  //     } else {
-  //       print('データ送信失敗: ${response.statusCode}');
-  //     }
-  //   } catch (e) {
-  //     print('エラーが発生しました: $e');
-  //   } finally {
-  //     measurementDataJson = '';
-  //   }
-  // }
 
   void _sendMeasureData() async {
     try {
