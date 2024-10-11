@@ -16,6 +16,7 @@ TagManager:
   - OnesPlace
   - TensPlace
   - HundredsPlace
+  - NumberText
   layers:
   - Default
   - TransparentFX

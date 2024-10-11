@@ -9,9 +9,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4134096111801697096}
+  - component: {fileID: 2999425872358072948}
   m_Layer: 0
   m_Name: ANumberText
-  m_TagString: Untagged
+  m_TagString: NumberText
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -38,6 +39,26 @@ Transform:
   - {fileID: 5760600073956365363}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2999425872358072948
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3509607327037226899}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61f3825b963848542b90856840e9ac32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  LightColor: {r: 1, g: 0.88235295, b: 0, a: 0}
+  RightTop: []
+  RightBottom: []
+  CenterTop: []
+  CenterMiddle: []
+  CenterBottom: []
+  LeftTop: []
+  LeftBottom: []
 --- !u!1001 &1426673373457631495
 PrefabInstance:
   m_ObjectHideFlags: 0
