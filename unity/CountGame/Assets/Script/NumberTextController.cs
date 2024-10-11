@@ -5,38 +5,46 @@ using System.Linq;
 
 public class NumberTextController : MonoBehaviour
 {
-    GameObject[] RightTop;
-    GameObject[] RightBottom;
-    GameObject[] CenterTop;
-    GameObject[] CenterMiddle;
-    GameObject[] CenterBottom;
-    GameObject[] LeftTop;
-    GameObject[] LeftBottom;
+    public GameObject[] RightTop;
+    public GameObject[] RightBottom;
+    public GameObject[] CenterTop;
+    public GameObject[] CenterMiddle;
+    public GameObject[] CenterBottom;
+    public GameObject[] LeftTop;
+    public GameObject[] LeftBottom;
 
     void Start()
     {
-        // このスクリプトが BlackNumberText にアタッチされていると仮定し、その子オブジェクトのみを探索
-        GameObject blackNumberText = GameObject.FindGameObjectWithTag("BlackNumberText"); // BlackNumberText オブジェクトを取得
+        // このスクリプトがアタッチされているオブジェクトのTransform
+        Transform parentTransform = gameObject.transform;
 
-        if (blackNumberText != null)
+        // まず、「BlackNumberText」という子オブジェクトを探す
+        Transform blackNumberTextTransform = parentTransform.Find("BlackNumberText");
+
+        if (blackNumberTextTransform != null)
         {
-            RightTop = GetChildrenWithTag(blackNumberText.transform, "RightTop");
-            RightBottom = GetChildrenWithTag(blackNumberText.transform, "RightBottom");
-            CenterTop = GetChildrenWithTag(blackNumberText.transform, "CenterTop");
-            CenterMiddle = GetChildrenWithTag(blackNumberText.transform, "CenterMiddle");
-            CenterBottom = GetChildrenWithTag(blackNumberText.transform, "CenterBottom");
-            LeftTop = GetChildrenWithTag(blackNumberText.transform, "LeftTop");
-            LeftBottom = GetChildrenWithTag(blackNumberText.transform, "LeftBottom");
+            // 次に「BlackNumberText」の中から各タグに対応する子オブジェクトを取得
+            RightTop = GetChildrenWithTag(blackNumberTextTransform, "RightTop");
+            RightBottom = GetChildrenWithTag(blackNumberTextTransform, "RightBottom");
+            CenterTop = GetChildrenWithTag(blackNumberTextTransform, "CenterTop");
+            CenterMiddle = GetChildrenWithTag(blackNumberTextTransform, "CenterMiddle");
+            CenterBottom = GetChildrenWithTag(blackNumberTextTransform, "CenterBottom");
+            LeftTop = GetChildrenWithTag(blackNumberTextTransform, "LeftTop");
+            LeftBottom = GetChildrenWithTag(blackNumberTextTransform, "LeftBottom");
+
+            // デバッグで確認
+            Debug.Log($"RightTop count: {RightTop.Length}");
         }
         else
         {
-            Debug.LogError("BlackNumberText オブジェクトが見つかりませんでした。");
+            Debug.LogError("BlackNumberText not found!");
         }
     }
 
+
+
     public void ChangeNumber(int number)
     {
-
         SetObjectsActive(RightTop, true); SetObjectsActive(RightBottom, true); SetObjectsActive(CenterTop, true); SetObjectsActive(CenterMiddle, true);
         SetObjectsActive(CenterBottom, true); SetObjectsActive(LeftTop, true); SetObjectsActive(LeftBottom, true);
 
@@ -86,7 +94,7 @@ public class NumberTextController : MonoBehaviour
 
             case 9:
                 SetObjectsActive(RightTop, false); SetObjectsActive(RightBottom, false); SetObjectsActive(CenterTop, false); SetObjectsActive(CenterMiddle, false);
-                SetObjectsActive(CenterBottom, false); SetObjectsActive(LeftBottom, false);
+                SetObjectsActive(CenterBottom, false); SetObjectsActive(LeftTop, false);
                 break;
                 ;
             default:
