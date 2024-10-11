@@ -41,8 +41,14 @@ public class CounterController : MonoBehaviour
 
             foreach (Renderer renderer in renderers)
             {
+                if (renderer.gameObject == obj)
+                {
+                    continue;
+                }
+
                 if (renderer != null)
                 {
+                    Debug.Log($"Renderer is attached to GameObject: {renderer.gameObject.name}");
                     // Rendererが見つかったら色を変更
                     renderer.material.color = Black;
                 }
@@ -60,19 +66,26 @@ public class CounterController : MonoBehaviour
         {
             count++;
             onesPlace = count % 10;
+            Debug.Log($"OnesPlace = {onesPlace}");
             tensPlace = (count / 10) % 10;
+            Debug.Log($"TensPlace = {tensPlace}");
             hundredsPlace = (count / 100) % 10;
+            Debug.Log($"HundredPlace = {hundredsPlace}");
 
             UpdateNumberDisplay("OnesPlace", onesPlace);
+            Debug.Log("AA");
 
             if (count >= 10)
             {
                 UpdateNumberDisplay("TensPlace", tensPlace);
+                Debug.Log("BB");
 
             }
             if (count >= 100)
             {
                 UpdateNumberDisplay("HundredsPlace", hundredsPlace);
+                Debug.Log("CC");
+
 
             }
         }
@@ -84,13 +97,18 @@ public class CounterController : MonoBehaviour
 
         if (placeObjects != null && placeObjects.Length > 0)
         {
+            Debug.Log($"DD {placeObjects.Length}");
             foreach (GameObject placeObject in placeObjects)
             {
+
                 // placeObject 内の NumberTextController を取得
                 NumberTextController numberTextController = placeObject.GetComponent<NumberTextController>();
 
                 if (numberTextController != null)
                 {
+                    Debug.Log($"NumberTextController found on {placeObject.name}");
+
+                    // 任意のフィールドやプロパティを出力する例
                     numberTextController.ChangeNumber(number);
                 }
                 else
@@ -104,5 +122,4 @@ public class CounterController : MonoBehaviour
             Debug.LogWarning($"'{placeTag}' タグが付いたオブジェクトが見つかりませんでした。");
         }
     }
-
 }
