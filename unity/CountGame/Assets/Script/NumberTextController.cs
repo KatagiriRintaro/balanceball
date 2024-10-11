@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
-public class NumberTextController : MonoBehaviour
+public class ChangeNumberTextController : MonoBehaviour
 {
+    // Start is called before the first frame update
+
+    public Color LightColor;
     public GameObject[] RightTop;
     public GameObject[] RightBottom;
     public GameObject[] CenterTop;
@@ -12,105 +15,99 @@ public class NumberTextController : MonoBehaviour
     public GameObject[] CenterBottom;
     public GameObject[] LeftTop;
     public GameObject[] LeftBottom;
-
     void Start()
     {
-        // このスクリプトがアタッチされているオブジェクトのTransform
         Transform parentTransform = gameObject.transform;
 
-        // まず、「BlackNumberText」という子オブジェクトを探す
-        Transform blackNumberTextTransform = parentTransform.Find("BlackNumberText");
-
-        if (blackNumberTextTransform != null)
-        {
-            // 次に「BlackNumberText」の中から各タグに対応する子オブジェクトを取得
-            RightTop = GetChildrenWithTag(blackNumberTextTransform, "RightTop");
-            RightBottom = GetChildrenWithTag(blackNumberTextTransform, "RightBottom");
-            CenterTop = GetChildrenWithTag(blackNumberTextTransform, "CenterTop");
-            CenterMiddle = GetChildrenWithTag(blackNumberTextTransform, "CenterMiddle");
-            CenterBottom = GetChildrenWithTag(blackNumberTextTransform, "CenterBottom");
-            LeftTop = GetChildrenWithTag(blackNumberTextTransform, "LeftTop");
-            LeftBottom = GetChildrenWithTag(blackNumberTextTransform, "LeftBottom");
-
-            // デバッグで確認
-            Debug.Log($"RightTop count: {RightTop.Length}");
-        }
-        else
-        {
-            Debug.LogError("BlackNumberText not found!");
-        }
+        // Check for children with specific tags
+        RightTop = GetChildrenWithTag(parentTransform, "RightTop");
+        RightBottom = GetChildrenWithTag(parentTransform, "RightBottom");
+        CenterTop = GetChildrenWithTag(parentTransform, "CenterTop");
+        CenterMiddle = GetChildrenWithTag(parentTransform, "CenterMiddle");
+        CenterBottom = GetChildrenWithTag(parentTransform, "CenterBottom");
+        LeftTop = GetChildrenWithTag(parentTransform, "LeftTop");
+        LeftBottom = GetChildrenWithTag(parentTransform, "LeftBottom");
     }
-
 
 
     public void ChangeNumber(int number)
     {
-        SetObjectsActive(RightTop, true); SetObjectsActive(RightBottom, true); SetObjectsActive(CenterTop, true); SetObjectsActive(CenterMiddle, true);
-        SetObjectsActive(CenterBottom, true); SetObjectsActive(LeftTop, true); SetObjectsActive(LeftBottom, true);
+        SetObjectsColor(RightTop, Color.black); SetObjectsColor(RightBottom, Color.black); SetObjectsColor(CenterTop, Color.black); SetObjectsColor(CenterMiddle, Color.black);
+        SetObjectsColor(CenterBottom, Color.black); SetObjectsColor(LeftTop, Color.black); SetObjectsColor(LeftBottom, Color.black);
 
         switch (number)
         {
             case 0:
-                SetObjectsActive(RightTop, false); SetObjectsActive(RightBottom, false); SetObjectsActive(CenterTop, false); SetObjectsActive(CenterBottom, false);
-                SetObjectsActive(LeftTop, false); SetObjectsActive(LeftBottom, false);
+                SetObjectsColor(RightTop, LightColor); SetObjectsColor(RightBottom, LightColor); SetObjectsColor(CenterTop, LightColor); SetObjectsColor(CenterBottom, LightColor);
+                SetObjectsColor(LeftTop, LightColor); SetObjectsColor(LeftBottom, LightColor);
                 break;
 
             case 1:
-                SetObjectsActive(RightTop, false); SetObjectsActive(RightBottom, false);
+                SetObjectsColor(RightTop, LightColor); SetObjectsColor(RightBottom, LightColor);
                 break;
 
             case 2:
-                SetObjectsActive(RightTop, false); SetObjectsActive(CenterTop, false); SetObjectsActive(CenterMiddle, false); SetObjectsActive(CenterBottom, false);
-                SetObjectsActive(LeftBottom, false);
+                SetObjectsColor(RightTop, LightColor); SetObjectsColor(CenterTop, LightColor); SetObjectsColor(CenterMiddle, LightColor); SetObjectsColor(CenterBottom, LightColor);
+                SetObjectsColor(LeftBottom, LightColor);
                 break;
 
             case 3:
-                SetObjectsActive(RightTop, false); SetObjectsActive(RightBottom, false); SetObjectsActive(CenterTop, false); SetObjectsActive(CenterMiddle, false);
-                SetObjectsActive(CenterBottom, false);
+                SetObjectsColor(RightTop, LightColor); SetObjectsColor(RightBottom, LightColor); SetObjectsColor(CenterTop, LightColor); SetObjectsColor(CenterMiddle, LightColor);
+                SetObjectsColor(CenterBottom, LightColor);
                 break;
 
             case 4:
-                SetObjectsActive(RightTop, false); SetObjectsActive(RightBottom, false); SetObjectsActive(CenterMiddle, false); SetObjectsActive(LeftTop, false);
+                SetObjectsColor(RightTop, LightColor); SetObjectsColor(RightBottom, LightColor); SetObjectsColor(CenterMiddle, LightColor); SetObjectsColor(LeftTop, LightColor);
                 break;
 
             case 5:
-                SetObjectsActive(RightBottom, false); SetObjectsActive(CenterTop, false); SetObjectsActive(CenterMiddle, false); SetObjectsActive(CenterBottom, false);
-                SetObjectsActive(LeftTop, false);
+                SetObjectsColor(RightBottom, LightColor); SetObjectsColor(CenterTop, LightColor); SetObjectsColor(CenterMiddle, LightColor); SetObjectsColor(CenterBottom, LightColor);
+                SetObjectsColor(LeftTop, LightColor);
                 break;
 
             case 6:
-                SetObjectsActive(RightBottom, false); SetObjectsActive(CenterTop, false); SetObjectsActive(CenterMiddle, false); SetObjectsActive(CenterBottom, false);
-                SetObjectsActive(LeftTop, false); SetObjectsActive(LeftBottom, false);
+                SetObjectsColor(RightBottom, LightColor); SetObjectsColor(CenterTop, LightColor); SetObjectsColor(CenterMiddle, LightColor); SetObjectsColor(CenterBottom, LightColor);
+                SetObjectsColor(LeftTop, LightColor); SetObjectsColor(LeftBottom, LightColor);
                 break;
 
             case 7:
-                SetObjectsActive(RightTop, false); SetObjectsActive(RightBottom, false); SetObjectsActive(CenterTop, false); SetObjectsActive(LeftTop, false);
+                SetObjectsColor(RightTop, LightColor); SetObjectsColor(RightBottom, LightColor); SetObjectsColor(CenterTop, LightColor); SetObjectsColor(LeftTop, LightColor);
                 break;
 
             case 8:
-                SetObjectsActive(RightTop, false); SetObjectsActive(RightBottom, false); SetObjectsActive(CenterTop, false); SetObjectsActive(CenterMiddle, false);
-                SetObjectsActive(CenterBottom, false); SetObjectsActive(LeftTop, false); SetObjectsActive(LeftBottom, false);
+                SetObjectsColor(RightTop, LightColor); SetObjectsColor(RightBottom, LightColor); SetObjectsColor(CenterTop, LightColor); SetObjectsColor(CenterMiddle, LightColor);
+                SetObjectsColor(CenterBottom, LightColor); SetObjectsColor(LeftTop, LightColor); SetObjectsColor(LeftBottom, LightColor);
                 break;
 
             case 9:
-                SetObjectsActive(RightTop, false); SetObjectsActive(RightBottom, false); SetObjectsActive(CenterTop, false); SetObjectsActive(CenterMiddle, false);
-                SetObjectsActive(CenterBottom, false); SetObjectsActive(LeftTop, false);
+                SetObjectsColor(RightTop, LightColor); SetObjectsColor(RightBottom, LightColor); SetObjectsColor(CenterTop, LightColor); SetObjectsColor(CenterMiddle, LightColor);
+                SetObjectsColor(CenterBottom, LightColor); SetObjectsColor(LeftTop, LightColor);
                 break;
-                ;
+
             default:
                 break;
         }
     }
-
-    void SetObjectsActive(GameObject[] objects, bool active)
+    void SetObjectsColor(GameObject[] objects, Color color)
     {
         if (objects == null || objects.Length == 0) return;
 
         foreach (GameObject obj in objects)
         {
-            obj.SetActive(active);
+            // オブジェクトとその子オブジェクトすべてのRendererを取得して色を変更
+            Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();  // 親とすべての子のRendererを取得
+            foreach (Renderer renderer in renderers)
+            {
+                if (renderer != null)
+                {
+                    // マテリアルの新しいインスタンスを作成して色を変更
+                    renderer.material = new Material(renderer.material);
+                    renderer.material.color = color;
+                }
+            }
         }
     }
+
 
     GameObject[] GetChildrenWithTag(Transform parent, string tag)
     {
@@ -120,10 +117,8 @@ public class NumberTextController : MonoBehaviour
             .Select(t => t.gameObject)                 // Transform を GameObject に変換
             .ToArray();                                // 配列として取得
 
-        // 子オブジェクトの個数を表示
-        Debug.Log($"'{tag}' タグの子オブジェクトの個数: {childrenWithTag.Length}");
-
         return childrenWithTag;  // 配列を返す
     }
+
 
 }

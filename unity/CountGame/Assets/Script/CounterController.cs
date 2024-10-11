@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class CounterController : MonoBehaviour
 {
@@ -14,30 +15,15 @@ public class CounterController : MonoBehaviour
 
     void Start()
     {
-        // "LightNumberText" タグを持つオブジェクトを探し、色を変更
-        GameObject[] lightObjects = GameObject.FindGameObjectsWithTag("LightNumberText");
-        foreach (GameObject obj in lightObjects)
-        {
-            // オブジェクト内の全てのRendererコンポーネントを取得
-            Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
-            foreach (Renderer renderer in renderers)
-            {
-                if (renderer != null)
-                {
-                    // Rendererが見つかったら色を変更
-                    renderer.material.color = LightColor;
-                }
-            }
-        }
+        GameObject[] blackObjects = gameObject.GetComponentsInChildren<Transform>()
+        .Where(t => t != gameObject.transform && t.gameObject.name != "device")  // 自分自身を除外
+        .Select(t => t.gameObject)              // Transform を GameObject に変換
+        .ToArray();                             // 配列に変換
 
-        // "BlackNumberText" タグを持つオブジェクトを探し、色を変更
-        GameObject[] blackObjects = GameObject.FindGameObjectsWithTag("BlackNumberText");
-        Debug.Log("" + blackObjects.Length);
         foreach (GameObject obj in blackObjects)
         {
             // オブジェクト内の全てのRendererコンポーネントを取得
             Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
-            Debug.Log($"{obj.name} has {renderers.Length} renderers.");
 
             foreach (Renderer renderer in renderers)
             {
@@ -48,8 +34,6 @@ public class CounterController : MonoBehaviour
 
                 if (renderer != null)
                 {
-                    Debug.Log($"Renderer is attached to GameObject: {renderer.gameObject.name}");
-                    // Rendererが見つかったら色を変更
                     renderer.material.color = Black;
                 }
                 else
@@ -66,27 +50,19 @@ public class CounterController : MonoBehaviour
         {
             count++;
             onesPlace = count % 10;
-            Debug.Log($"OnesPlace = {onesPlace}");
             tensPlace = (count / 10) % 10;
-            Debug.Log($"TensPlace = {tensPlace}");
             hundredsPlace = (count / 100) % 10;
-            Debug.Log($"HundredPlace = {hundredsPlace}");
 
             UpdateNumberDisplay("OnesPlace", onesPlace);
-            Debug.Log("AA");
 
             if (count >= 10)
             {
                 UpdateNumberDisplay("TensPlace", tensPlace);
-                Debug.Log("BB");
 
             }
             if (count >= 100)
             {
                 UpdateNumberDisplay("HundredsPlace", hundredsPlace);
-                Debug.Log("CC");
-
-
             }
         }
     }
@@ -102,13 +78,14 @@ public class CounterController : MonoBehaviour
             {
 
                 // placeObject 内の NumberTextController を取得
+                // NumberTextController numberTextController = placeObject.GetComponent<NumberTextController>();
                 NumberTextController numberTextController = placeObject.GetComponent<NumberTextController>();
 
+                // if (numberTextController != null)
                 if (numberTextController != null)
                 {
-                    Debug.Log($"NumberTextController found on {placeObject.name}");
-
                     // 任意のフィールドやプロパティを出力する例
+                    // numberTextController.ChangeNumber(number);
                     numberTextController.ChangeNumber(number);
                 }
                 else
