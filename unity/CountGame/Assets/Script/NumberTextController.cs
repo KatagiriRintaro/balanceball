@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
-public class ChangeNumberTextController : MonoBehaviour
+public class NumberTextController : MonoBehaviour
 {
     // Start is called before the first frame update
 
