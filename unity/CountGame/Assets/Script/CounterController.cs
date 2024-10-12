@@ -73,7 +73,6 @@ public class CounterController : MonoBehaviour
 
         if (placeObjects != null && placeObjects.Length > 0)
         {
-            Debug.Log($"DD {placeObjects.Length}");
             foreach (GameObject placeObject in placeObjects)
             {
 

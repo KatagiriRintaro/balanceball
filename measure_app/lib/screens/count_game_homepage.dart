@@ -20,7 +20,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
   late Timer _updateTimer;
   int _countdown = 2;
   final int _countdownseconds = 1;
-  final int _measurementTime = 5;
+  final int _measurementTime = 2;
   final int _sendDataUnit = 1;
   final int milliseconds = 10;
   final double _slidingRate = 0.5;
@@ -42,7 +42,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
     _timer.cancel();
     _updateTimer.cancel();
     _magnetometerController.stopMeasurement();
-    // _wsManager.disconnect();
+    _wsManager.disconnect();
     super.dispose();
   }
 
@@ -81,17 +81,11 @@ class CountGameHomepageState extends State<CountGameHomepage> {
           // print(newData); // 最新データ取得
           if (newData.length == 5) {
             _measurementData.add(newData.cast<Object>());
-            print(newData);
-            print("length ${_measurementData.length}");
           }
 
           if (_sendCount == 0 &&
               _measurementData.length ==
                   (_sendDataUnit * (1000 / milliseconds)).toInt()) {
-            print("One");
-            // _dataForSend = _measurementData
-            //     .map((innerList) => List<double>.from(innerList))
-            //     .toList();
             final preDataForSend = _measurementData.map((data) {
               return [
                 (data[0] as DateTime)
@@ -115,7 +109,6 @@ class CountGameHomepageState extends State<CountGameHomepage> {
           if (_measurementData.length ==
               (_sendDataUnit * (1000 / milliseconds) * (1 + _slidingRate))
                   .toInt()) {
-            print("Two");
             final preDataForSend = _measurementData.map((data) {
               return [
                 (data[0] as DateTime)
@@ -147,29 +140,12 @@ class CountGameHomepageState extends State<CountGameHomepage> {
     Future.delayed(Duration(seconds: _measurementTime), () {
       setState(() {
         _isMeasuring = false; // 計測終了
+        _measurementData = [];
       });
 
       // 計測を終了し、グラフの更新も停止
       _updateTimer.cancel();
       _magnetometerController.stopShowMeasurement();
-      // print('A$measurementData');
-
-      // final measurementDataForJson = measurementData.map((data) {
-      //   return [
-      //     (data[0] as DateTime)
-      //         .toIso8601String()
-      //         .replaceAll('T', ' '), // DateTimeをISO8601形式の文字列に変換
-      //     data[1], // x
-      //     data[2], // y
-      //     data[3], // z
-      //     data[4],
-      //   ];
-      // }).toList();
-
-      // measurementDataJson = json.encode(measurementDataForJson);
-      // print(measurementDataJson);
-      // print(measurementDataJson.runtimeType);
-      // _sendMeasureData();
     });
   }
 
@@ -180,11 +156,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
 
       // サーバからの応答を待機
       _wsManager.receiveData()?.listen((response) {
-        print('受信データ: $response');
-        // decodedData = json.decode(response);
-
-        // final strData = decodedData['data'];
-        // resultData = json.decode(strData);
+        // print('受信データ: $response');
 
         setState(() {}); // UIを更新
       }, onError: (error) {

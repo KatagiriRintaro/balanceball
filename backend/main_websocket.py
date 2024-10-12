@@ -1,6 +1,8 @@
 import asyncio
 import websockets
 import json
+from datetime import datetime
+from count import Count
 
 asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
@@ -10,14 +12,20 @@ async def handle_client(websocket, path):
     connected_clients.add(websocket)
     try:
         async for message in websocket:
-            # print(f'Received message: {message}')
+
             data = json.loads(message)
 
-            print(len(data))
+            TimeStamps = Count(data, height=20, distance=20)
+
+            def default_converter(o):
+                if isinstance(o, datetime):
+                    # "T" なしでフォーマットする
+                    return o.strftime("%Y-%m-%d %H:%M:%S.%f")
+
 
             #データを送ったクライアントも含めて返す場合
             # 各クライアントにデータを送信するためのタスクを明示的に作成
-            send_tasks = [asyncio.create_task(client.send(json.dumps(data))) for client in connected_clients]
+            send_tasks = [asyncio.create_task(client.send(json.dumps(TimeStamps, default=default_converter))) for client in connected_clients]
             await asyncio.wait(send_tasks)
 
 
@@ -35,8 +43,5 @@ async def start_server():
     server = await websockets.serve(handle_client, '172.16.4.31', 8765)
     print("WebSocket server started!")  # サーバー起動後のログ
     await server.wait_closed()
-
-# asyncio.get_event_loop().run_until_complete(start_server())
-# asyncio.get_event_loop().run_forever()
 
 asyncio.run(start_server())  # サーバの起動
