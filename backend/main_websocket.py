@@ -15,7 +15,7 @@ async def handle_client(websocket, path):
 
             data = json.loads(message)
 
-            TimeStamps = Count(data, height=20, distance=20)
+            TimeStamps = Count(data, low_cut=1 ,high_cut=8, height=20, distance=20)
 
             def default_converter(o):
                 if isinstance(o, datetime):
