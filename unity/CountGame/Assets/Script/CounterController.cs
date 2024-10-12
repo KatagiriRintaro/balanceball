@@ -8,7 +8,7 @@ public class CounterController : MonoBehaviour
     public Color LightColor;
     public Color Black = Color.black;
 
-    private int count = 0;
+    // private int Count = 0;
     private int onesPlace = 0;
     private int tensPlace = 0;
     private int hundredsPlace = 0;
@@ -42,29 +42,54 @@ public class CounterController : MonoBehaviour
                 }
             }
         }
+
+        SetCount(0);
     }
 
-    void Update()
+    // void Update()
+    // { 
+    //     if (Input.GetKeyDown(KeyCode.Space))
+    //     {
+    //         Count++;
+    //         onesPlace = Count % 10;
+    //         tensPlace = (Count / 10) % 10;
+    //         hundredsPlace = (Count / 100) % 10;
+
+    //         UpdateNumberDisplay("OnesPlace", onesPlace);
+
+    //         if (Count >= 10)
+    //         {
+    //             UpdateNumberDisplay("TensPlace", tensPlace);
+
+    //         }
+    //         if (Count >= 100)
+    //         {
+    //             UpdateNumberDisplay("HundredsPlace", hundredsPlace);
+    //         }
+    //     }
+    // }
+
+    public void SetCount(int count)
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        Debug.Log("Count is set to: " + count);
+
+        // Countが更新されたら表示をアップデート
+        onesPlace = count % 10;
+        tensPlace = (count / 10) % 10;
+        hundredsPlace = (count / 100) % 10;
+
+        UpdateNumberDisplay("OnesPlace", onesPlace);
+
+        if (count >= 10)
         {
-            count++;
-            onesPlace = count % 10;
-            tensPlace = (count / 10) % 10;
-            hundredsPlace = (count / 100) % 10;
-
-            UpdateNumberDisplay("OnesPlace", onesPlace);
-
-            if (count >= 10)
-            {
-                UpdateNumberDisplay("TensPlace", tensPlace);
-
-            }
-            if (count >= 100)
-            {
-                UpdateNumberDisplay("HundredsPlace", hundredsPlace);
-            }
+            UpdateNumberDisplay("TensPlace", tensPlace);
         }
+        if (count >= 100)
+        {
+            UpdateNumberDisplay("HundredsPlace", hundredsPlace);
+        }
+
+        Debug.Log("ASA");
     }
 
     void UpdateNumberDisplay(string placeTag, int number)

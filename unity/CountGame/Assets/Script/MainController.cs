@@ -9,8 +9,11 @@ public class MainController : MonoBehaviour
 {
     private List<DateTime> preTimeStamps;
     private List<DateTime> postTimeStamps;
+    private int sendCount = 0;
     private int Count = 0;
+    private bool shouldUpdateCount = false;
     private WebSocket ws;
+    public CounterController counterController;
 
     void Start()
     {
@@ -29,28 +32,42 @@ public class MainController : MonoBehaviour
         {
             Debug.Log("サーバーからのメッセージ: " + e.Data);
 
-            if (Count == 0)
+            try
             {
-                postTimeStamps = ParseStringToDynamicList(e.Data);
-                // postTimeStampsリストを文字列に変換してログに出力
-                string postTimeStampsString = string.Join(", ", postTimeStamps.Select(ts => ts.ToString("yyyy-MM-dd HH:mm:ss.fff")));
-                Debug.Log("postTimeStamps: " + postTimeStampsString);
+                if (sendCount == 0)
+                {
+                    postTimeStamps = ParseStringToDynamicList(e.Data);
+                    string postTimeStampsString = string.Join(", ", postTimeStamps.Select(ts => ts.ToString("yyyy-MM-dd HH:mm:ss.fff")));
+                    Debug.Log("postTimeStamps: " + postTimeStampsString);
 
-                Count = 1;
+                    Count += postTimeStamps.Count;
+                    Debug.Log("Count: " + Count);
+
+                    shouldUpdateCount = true;
+
+                    sendCount = 1;
+                }
+                else
+                {
+                    preTimeStamps = DeepCopyDynamicList(postTimeStamps);
+                    postTimeStamps = ParseStringToDynamicList(e.Data);
+                    string preTimeStampsString = string.Join(", ", preTimeStamps.Select(ts => ts.ToString("yyyy-MM-dd HH:mm:ss.fff")));
+                    Debug.Log("preTimeStamps: " + preTimeStampsString);
+                    string postTimeStampsString = string.Join(", ", postTimeStamps.Select(ts => ts.ToString("yyyy-MM-dd HH:mm:ss.fff")));
+                    Debug.Log("postTimeStamps: " + postTimeStampsString);
+
+                    CompareTimestamps();
+                    Debug.Log("Count: " + Count);
+
+                    shouldUpdateCount = true;
+                }
             }
-
-            else
+            catch (Exception ex)
             {
-                preTimeStamps = DeepCopyDynamicList(postTimeStamps);
-                postTimeStamps = ParseStringToDynamicList(e.Data);
-                // postTimeStampsリストを文字列に変換してログに出力
-                string preTimeStampsString = string.Join(", ", preTimeStamps.Select(ts => ts.ToString("yyyy-MM-dd HH:mm:ss.fff")));
-                Debug.Log("preTimeStamps: " + preTimeStampsString);
-                // postTimeStampsリストを文字列に変換してログに出力
-                string postTimeStampsString = string.Join(", ", postTimeStamps.Select(ts => ts.ToString("yyyy-MM-dd HH:mm:ss.fff")));
-                Debug.Log("postTimeStamps: " + postTimeStampsString);
+                Debug.LogError($"OnMessageで例外が発生しました: {ex.Message}\n{ex.StackTrace}");
             }
         };
+
 
         // エラー発生時のイベント
         ws.OnError += (sender, e) =>
@@ -116,8 +133,42 @@ public class MainController : MonoBehaviour
         }
     }
 
+    void CompareTimestamps()
+    {
+        // postTimeStamps と preTimeStamps の共通要素を取得
+        var commonTimestamps = preTimeStamps.Intersect(postTimeStamps).ToList();
+
+        // 共通部分のログ出力
+        if (commonTimestamps.Count > 0)
+        {
+            Count += postTimeStamps.Count - commonTimestamps.Count;
+            Debug.Log("共通のタイムスタンプ:");
+            foreach (var timestamp in commonTimestamps)
+            {
+                Debug.Log(timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+            }
+        }
+        else
+        {
+            Count += preTimeStamps.Count;
+            Debug.Log("共通するタイムスタンプはありません。");
+        }
+    }
+
     void Update()
     {
+        if (shouldUpdateCount)
+        {
+            shouldUpdateCount = false;  // フラグをリセット
 
+            if (counterController != null)
+            {
+                counterController.SetCount(Count);  // メインスレッド上で処理
+            }
+            else
+            {
+                Debug.LogError("counterControllerがnullです。");
+            }
+        }
     }
 }

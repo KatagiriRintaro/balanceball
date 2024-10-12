@@ -20,7 +20,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
   late Timer _updateTimer;
   int _countdown = 2;
   final int _countdownseconds = 1;
-  final int _measurementTime = 2;
+  final int _measurementTime = 5;
   final int _sendDataUnit = 1;
   final int milliseconds = 10;
   final double _slidingRate = 0.5;
