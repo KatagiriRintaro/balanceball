@@ -4,31 +4,79 @@ using WebSocketSharp;  // WebSocketSharpライブラリを使用
 using System.Collections.Generic;
 using System.Linq;
 using System.Globalization;
+using Newtonsoft.Json.Linq;
 
 public class MainController : MonoBehaviour
 {
     private List<DateTime> preTimeStamps;
     private List<DateTime> postTimeStamps;
+    private List<Dictionary<int, string>> playerList;
     private int sendCount = 0;
     private int Count = 0;
     private bool shouldUpdateCount = false;
-    private WebSocket ws;
-    public CounterController counterController;
+    private WebSocket wsRegister;
+    private WebSocket wsForDataSend;
+    public CounterController counterController1;
+    public CounterController counterController2;
 
     void Start()
     {
         Debug.Log("Startメソッドが実行されました。");
         // WebSocketの初期化
-        ws = new WebSocket("ws://172.16.4.31:8765/");
+        wsForDataSend = new WebSocket("ws://172.16.4.31:8765/");
+        wsRegister = new WebSocket("ws://172.16.4.31:8764/");
+
+        wsRegister.OnOpen += (sender, e) =>
+        {
+            Debug.Log("WebSocket1接続が確立されました。");
+        };
 
         // 接続のオープン
-        ws.OnOpen += (sender, e) =>
+        wsForDataSend.OnOpen += (sender, e) =>
         {
-            Debug.Log("WebSocket接続が確立されました。");
+            Debug.Log("WebSocket2接続が確立されました。");
+        };
+
+        wsRegister.OnMessage += (sender, e) =>
+        {
+            Debug.Log("サーバーからのメッセージ: " + e.Data);
+
+            try
+            {
+                string modifiedData = "";
+
+                if (e.Data.Contains("Setting OK"))
+                {
+                    modifiedData = e.Data.Replace("Setting OK", "");
+                }
+
+                else if (e.Data.Contains("Setting Not Yet"))
+                {
+                    modifiedData = e.Data.Replace("Setting Not Yet", "");
+                }
+
+                Dictionary<int, string> playerData = new Dictionary<int, string>();  // 辞書を作成
+
+
+                if (playerList.Count == 0)
+                {
+                    playerData.Add(1, modifiedData);
+                    playerList.Add(playerData);
+                }
+                else if (playerList.Count == 1)
+                {
+                    playerData.Add(2, modifiedData);
+                    playerList.Add(playerData);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"OnMessageで例外が発生しました: {ex.Message}\n{ex.StackTrace}");
+            }
         };
 
         // メッセージ受信時のイベント
-        ws.OnMessage += (sender, e) =>
+        wsForDataSend.OnMessage += (sender, e) =>
         {
             Debug.Log("サーバーからのメッセージ: " + e.Data);
 
@@ -68,51 +116,74 @@ public class MainController : MonoBehaviour
             }
         };
 
+        wsRegister.OnError += (sender, e) =>
+        {
+            Debug.LogError("Registerでエラーが発生しました: " + e.Message);
+        };
+
 
         // エラー発生時のイベント
-        ws.OnError += (sender, e) =>
+        wsForDataSend.OnError += (sender, e) =>
         {
-            Debug.LogError("エラーが発生しました: " + e.Message);
+            Debug.LogError("SendDataでエラーが発生しました: " + e.Message);
         };
 
         // 接続クローズ時のイベント
-        ws.OnClose += (sender, e) =>
+        wsRegister.OnClose += (sender, e) =>
+        {
+            Debug.Log("WebSocket接続が閉じられました。");
+        };
+
+        // 接続クローズ時のイベント
+        wsForDataSend.OnClose += (sender, e) =>
         {
             Debug.Log("WebSocket接続が閉じられました。");
         };
 
         // WebSocketに接続
-        ws.Connect();
+        wsRegister.Connect();
+        wsForDataSend.Connect();
     }
 
     List<DateTime> ParseStringToDynamicList(string data)
     {
-        data = data.Trim('[', ']');  // JSON配列の[]を除去
-        string[] items = data.Split(',');  // カンマで区切る
         List<DateTime> result = new List<DateTime>();
 
-        foreach (string item in items)
+        try
         {
-            string trimmedItem = item.Trim().Trim('"');  // 余分なスペースと " を除去
+            // JSONを解析してTimeStampsを取得
+            JObject jsonData = JObject.Parse(data);
+            JArray timeStampsArray = (JArray)jsonData["TimeStamps"];  // TimeStamps配列を取得
 
-            // 6桁のマイクロ秒が含まれている場合、3桁に切り詰める
-            int dotIndex = trimmedItem.LastIndexOf('.');
-            if (dotIndex != -1 && trimmedItem.Length - dotIndex - 1 > 3)
+            // TimeStampsをDateTimeのリストに変換
+            foreach (string item in timeStampsArray)
             {
-                // 3桁まで残して切り詰める
-                trimmedItem = trimmedItem.Substring(0, dotIndex + 4);  // 小数点+3桁
-            }
+                string trimmedItem = item.Trim().Trim('"');  // 余分なスペースと " を除去
 
-            // パース処理
-            if (DateTime.TryParseExact(trimmedItem, "yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
-            {
-                result.Add(parsedDate);
-            }
-            else
-            {
-                Debug.LogWarning($"無効な日時フォーマット: {trimmedItem}");
+                // 6桁のマイクロ秒が含まれている場合、3桁に切り詰める
+                int dotIndex = trimmedItem.LastIndexOf('.');
+                if (dotIndex != -1 && trimmedItem.Length - dotIndex - 1 > 3)
+                {
+                    // 3桁まで残して切り詰める
+                    trimmedItem = trimmedItem.Substring(0, dotIndex + 4);  // 小数点+3桁
+                }
+
+                // パース処理
+                if (DateTime.TryParseExact(trimmedItem, "yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
+                {
+                    result.Add(parsedDate);
+                }
+                else
+                {
+                    Debug.LogWarning($"無効な日時フォーマット: {trimmedItem}");
+                }
             }
         }
+        catch (Exception ex)
+        {
+            Debug.LogError($"JSON解析に失敗しました: {ex.Message}");
+        }
+
         return result;
     }
 
@@ -126,9 +197,10 @@ public class MainController : MonoBehaviour
     void OnDestroy()
     {
         // WebSocket接続を閉じる
-        if (ws != null && ws.IsAlive)
+        if (wsRegister != null && wsRegister.IsAlive && wsForDataSend != null && wsForDataSend.IsAlive)
         {
-            ws.Close();
+            wsRegister.Close();
+            wsForDataSend.Close();
             Debug.Log("WebSocket接続を閉じました。");
         }
     }
@@ -161,9 +233,9 @@ public class MainController : MonoBehaviour
         {
             shouldUpdateCount = false;  // フラグをリセット
 
-            if (counterController != null)
+            if (counterController1 != null)
             {
-                counterController.SetCount(Count);  // メインスレッド上で処理
+                counterController1.SetCount(Count);  // メインスレッド上で処理
             }
             else
             {
