@@ -5,6 +5,7 @@ import 'package:measure_app/function/magnetometer_measure_controller.dart';
 import 'package:measure_app/function/websocketManager.dart';
 import 'package:measure_app/widget/operation_button.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:flutter_udid/flutter_udid.dart';
 
 class CountGameHomepage extends StatefulWidget {
   const CountGameHomepage({super.key});
@@ -16,9 +17,12 @@ class CountGameHomepage extends StatefulWidget {
 class CountGameHomepageState extends State<CountGameHomepage> {
   bool _isCounting = false;
   bool _isMeasuring = false;
+  bool _isRegistering = false;
+  bool _isSetting = false;
+  String _udid = '';
   late Timer _timer;
   late Timer _updateTimer;
-  int _countdown = 2;
+  int _countdown = 5;
   final int _countdownseconds = 1;
   final int _measurementTime = 5;
   final int _sendDataUnit = 1;
@@ -27,8 +31,11 @@ class CountGameHomepageState extends State<CountGameHomepage> {
   int _sendCount = 0;
   final MagnetometerMeasureController _magnetometerController =
       MagnetometerMeasureController();
-  final WebSocketManager _wsManager =
+  final WebSocketManager _wsManagerSendData =
       WebSocketManager(url: 'ws://172.16.4.31:8765/');
+  final WebSocketManager _wsManagerRegister =
+      WebSocketManager(url: 'ws://172.16.4.31:8764/');
+
   List<List<Object>> _measurementData = [];
   List<List<dynamic>> _dataForSend = [];
   String measurementDataJson = ' ';
@@ -37,18 +44,61 @@ class CountGameHomepageState extends State<CountGameHomepage> {
   WebSocketChannel? channel;
 
   @override
+  void initState() {
+    super.initState();
+    setState(() {
+      _wsManagerRegister.connect();
+      getDeviceUDID();
+    });
+  }
+
+  @override
   void dispose() {
     // タイマーが実行中ならキャンセル
     _timer.cancel();
     _updateTimer.cancel();
     _magnetometerController.stopMeasurement();
-    _wsManager.disconnect();
+    _wsManagerSendData.disconnect();
     super.dispose();
+  }
+
+  // UDIDを取得する非同期メソッド
+  Future<void> getDeviceUDID() async {
+    try {
+      _udid = await FlutterUdid.udid; // デバイスのUDIDを取得
+      print("Device UDID: $_udid");
+
+      _wsManagerRegister.sendUDID(_udid);
+
+      _wsManagerRegister.receiveData()?.listen((response) {
+        print('受信データ: $response');
+        if (response == "Setting OK") {
+          setState(() {
+            _isSetting = true;
+          });
+        } else if (response == "Setting Not Yet") {
+          setState(() {
+            _isRegistering = true;
+          });
+        } else if (response == "GameStart") {
+          _isCounting = true;
+        }
+
+        setState(() {}); // UIを更新
+      }, onError: (error) {
+        print('エラーが発生しました: $error');
+      });
+    } catch (e) {
+      print("Failed to get UDID: $e");
+      setState(() {
+        _isRegistering = false;
+      });
+    }
   }
 
   void _startCountdown() {
     setState(() {
-      _wsManager.connect();
+      _wsManagerSendData.connect();
       _isCounting = true;
     });
 
@@ -151,11 +201,14 @@ class CountGameHomepageState extends State<CountGameHomepage> {
 
   void _sendMeasureData() async {
     try {
+      var dataWithUdid = {"udid": _udid, "data": measurementDataJson};
+
+      String jsonDataWithUdid = json.encode(dataWithUdid);
       // データ送信
-      _wsManager.sendData(measurementDataJson);
+      _wsManagerSendData.sendData(jsonDataWithUdid);
 
       // サーバからの応答を待機
-      _wsManager.receiveData()?.listen((response) {
+      _wsManagerSendData.receiveData()?.listen((response) {
         // print('受信データ: $response');
 
         setState(() {}); // UIを更新
@@ -169,6 +222,15 @@ class CountGameHomepageState extends State<CountGameHomepage> {
     }
   }
 
+  void _gameStart() async {
+    _wsManagerRegister.sendData("Start$_udid");
+    _wsManagerRegister.receiveData()?.listen((response) {
+      if (response == "GameStart") {
+        _startCountdown();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -176,30 +238,56 @@ class CountGameHomepageState extends State<CountGameHomepage> {
         title: const Text('カウントゲーム'),
       ),
       body: Center(
-        child: _isCounting
-            ? Text(
-                '$_countdown',
-                style:
-                    const TextStyle(fontSize: 50, fontWeight: FontWeight.bold),
+        child: _isRegistering
+            ? const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '対戦相手探し中・・・',
+                    style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+                  ),
+                ],
               )
-            : _isMeasuring
-                ? const Column(
+            : _isSetting
+                ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        '計測中...',
+                      const Text(
+                        "ゲームを開始しますか？",
                         style: TextStyle(
                             fontSize: 40, fontWeight: FontWeight.bold),
                       ),
+                      OperationButton(
+                        onPressed: _gameStart,
+                        buttonText: "はい",
+                      ),
                     ],
                   )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      OperationButton(
-                          onPressed: _startCountdown, buttonText: '計測開始'),
-                    ],
-                  ),
+                : _isCounting
+                    ? Text(
+                        '$_countdown',
+                        style: const TextStyle(
+                            fontSize: 50, fontWeight: FontWeight.bold),
+                      )
+                    : _isMeasuring
+                        ? const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '計測中...',
+                                style: TextStyle(
+                                    fontSize: 40, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              OperationButton(
+                                  onPressed: _startCountdown,
+                                  buttonText: '計測開始'),
+                            ],
+                          ),
       ),
     );
   }

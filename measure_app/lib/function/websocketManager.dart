@@ -36,6 +36,16 @@ class WebSocketManager {
     }
   }
 
+  void sendUDID(String uuid) {
+    if (_channel != null && uuid.isNotEmpty) {
+      _channel!.sink.add(uuid);
+    } else if (_channel == null) {
+      print('データ送信失敗: WebSocketが接続されていません');
+    } else if (uuid.isEmpty) {
+      print('データ送信失敗: 送信データが空です');
+    }
+  }
+
   // サーバからのデータを受信するストリーム
   Stream<dynamic>? receiveData() {
     return _channel?.stream;
