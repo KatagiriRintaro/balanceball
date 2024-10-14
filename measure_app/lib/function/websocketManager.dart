@@ -28,7 +28,7 @@ class WebSocketManager {
   void sendData(String data) {
     if (_channel != null && data.isNotEmpty) {
       _channel!.sink.add(data);
-      print('データ送信中: $data');
+      // print('データ送信中: $data');
     } else if (_channel == null) {
       print('データ送信失敗: WebSocketが接続されていません');
     } else if (data.isEmpty) {

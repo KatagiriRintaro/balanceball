@@ -23,6 +23,7 @@ def Count(data, low_cut, high_cut, height, distance):
     y = []
     z = []
     elapsedTime = []
+    peakTimeStamp = []
 
     if type(data) == list:
         for i in range(len(data)):
@@ -34,13 +35,11 @@ def Count(data, low_cut, high_cut, height, distance):
         smoothed_y = butter_bandpass_filter(y, low_cut, high_cut, int(len(y)/(elapsedTime[-1]-elapsedTime[0])))
         smoothed_z = butter_bandpass_filter(z, low_cut, high_cut, int(len(y)/(elapsedTime[-1]-elapsedTime[0])))
 
-        plt.plot(elapsedTime, smoothed_y)
-        plt.plot(elapsedTime, smoothed_z)
-        plt.show()
+        # plt.plot(elapsedTime, smoothed_y)
+        # plt.plot(elapsedTime, smoothed_z)
+        # plt.show()
 
         peaks, _ = find_peaks(smoothed_y, height = height, distance = distance)
-
-        peakTimeStamp = [] 
 
         if len(peaks) == 0:
             peakTimeStamp = [datetime(1970, 1, 1, 0, 0, 0, 500000)] 
