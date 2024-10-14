@@ -23,10 +23,13 @@ async def handle_client_server1(websocket, path):
     try:
         async for message in websocket:
 
+            print(f"Received message: {message}")
+
             data = json.loads(message)
 
             if data[:5] == 'Start':
                 udid = data[5:]
+                print(udid)
                 start_list[f"{udid}"] = "Start"
                 are_all_values_same = len(set(start_list.values())) == 1
                 if are_all_values_same:
@@ -34,18 +37,23 @@ async def handle_client_server1(websocket, path):
                     await asyncio.wait(send_tasks)
 
             else:
+                if len(players_list) ==2:
+                    send_tasks = [asyncio.create_task(client.send(json.dumps(f"Over"))) for client in connected_clients_server1]
+                    await asyncio.wait(send_tasks)
+
                 players_list.append(data)
                 start_list[f"{data}"] = 0
+
 
                 if len(players_list) == 2:
 
                     #データを送ったクライアントも含めて返す場合
                     # 各クライアントにデータを送信するためのタスクを明示的に作成
-                    send_tasks = [asyncio.create_task(client.send(json.dumps(f'Setting OK{udid}'))) for client in connected_clients_server1]
+                    send_tasks = [asyncio.create_task(client.send(json.dumps(f"SettingOK{data}"))) for client in connected_clients_server1]
                     await asyncio.wait(send_tasks)
                 
                 else:
-                    send_tasks = [asyncio.create_task(client.send(json.dumps(f'Setting Not Yet{udid}'))) for client in connected_clients_server1]
+                    send_tasks = [asyncio.create_task(client.send(json.dumps(f"SettingNotYet{data}"))) for client in connected_clients_server1]
                     await asyncio.wait(send_tasks)
 
     except websockets.exceptions.ConnectionClosed:
@@ -58,14 +66,23 @@ async def handle_client_server2(websocket, path):
     try:
         async for message in websocket:
 
+            # print(f"Received message: {message}")
+
+
             data = json.loads(message)
 
             udid = data.get("udid")
             mag_data = data.get("data")
 
+            mag_data = json.loads(mag_data)
+
+            print(type(mag_data))
+
             TimeStamps = Count(mag_data, low_cut=1 ,high_cut=8, height=20, distance=20)
 
             response_data = {"udid" : udid, "TimeStamps" : TimeStamps}
+
+            print(response_data)
 
             #データを送ったクライアントも含めて返す場合
             # 各クライアントにデータを送信するためのタスクを明示的に作成
@@ -75,7 +92,10 @@ async def handle_client_server2(websocket, path):
 
             #データを送ってきたクライアントには返さない場合
             other_clients = connected_clients_server2 - {websocket} 
-            await asyncio.wait([client.send(json.dumps(response_data, default=default_converter)) for client in other_clients])
+            if other_clients:
+                # await asyncio.wait([client.send(json.dumps(response_data, default=default_converter)) for client in other_clients])
+                await asyncio.wait([asyncio.create_task(client.send(json.dumps(response_data, default=default_converter))) for client in other_clients])
+
 
     except websockets.exceptions.ConnectionClosed:
         print('Connection closed')

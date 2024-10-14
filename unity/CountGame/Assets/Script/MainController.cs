@@ -8,16 +8,27 @@ using Newtonsoft.Json.Linq;
 
 public class MainController : MonoBehaviour
 {
-    private List<DateTime> preTimeStamps;
-    private List<DateTime> postTimeStamps;
-    private List<Dictionary<int, string>> playerList;
-    private int sendCount = 0;
-    private int Count = 0;
-    private bool shouldUpdateCount = false;
+    private List<DateTime> preTimeStamps1;
+    private List<DateTime> preTimeStamps2;
+    private List<DateTime> postTimeStamps1;
+    public List<DateTime> postTimeStamps2;
+    private List<Dictionary<int, string>> playerList = new List<Dictionary<int, string>>();
+
+    private int sendCount1 = 0;
+    private int sendCount2 = 0;
+    private int Count1 = 0;
+    private int Count2 = 0;
+    private bool shouldUpdateCount1 = false;
+    private bool shouldUpdateCount2 = false;
     private WebSocket wsRegister;
     private WebSocket wsForDataSend;
     public CounterController counterController1;
     public CounterController counterController2;
+
+    private DataProcessor dataProcessor = new DataProcessor();
+    private DataProcessor.ProcessedData processedData1;
+    private DataProcessor.ProcessedData processedData2;
+
 
     void Start()
     {
@@ -45,15 +56,17 @@ public class MainController : MonoBehaviour
             {
                 string modifiedData = "";
 
-                if (e.Data.Contains("Setting OK"))
+                if (e.Data.Contains("SettingOK"))
                 {
-                    modifiedData = e.Data.Replace("Setting OK", "");
+                    modifiedData = e.Data.Replace("SettingOK", "");
                 }
 
-                else if (e.Data.Contains("Setting Not Yet"))
+                else if (e.Data.Contains("SettingNotYet"))
                 {
-                    modifiedData = e.Data.Replace("Setting Not Yet", "");
+                    modifiedData = e.Data.Replace("SettingNotYet", "");
                 }
+
+                Debug.Log(modifiedData);
 
                 Dictionary<int, string> playerData = new Dictionary<int, string>();  // 辞書を作成
 
@@ -78,36 +91,37 @@ public class MainController : MonoBehaviour
         // メッセージ受信時のイベント
         wsForDataSend.OnMessage += (sender, e) =>
         {
-            Debug.Log("サーバーからのメッセージ: " + e.Data);
+            // Debug.Log("サーバーからのメッセージ: " + e.Data);
+
+            var parsedData = dataProcessor.ParseStringToDynamicList(e.Data);
+
+            int target = dataProcessor.CheckID(playerList, parsedData.Udid.ToString());
+            Debug.Log($"Target: {target}");
 
             try
             {
-                if (sendCount == 0)
+                if (target == 1)
                 {
-                    postTimeStamps = ParseStringToDynamicList(e.Data);
-                    string postTimeStampsString = string.Join(", ", postTimeStamps.Select(ts => ts.ToString("yyyy-MM-dd HH:mm:ss.fff")));
-                    Debug.Log("postTimeStamps: " + postTimeStampsString);
+                    Debug.Log($"CountT1 {Count1}");
+                    processedData1 = dataProcessor.Count(parsedData, postTimeStamps1, sendCount1, Count1);
+                    preTimeStamps1 = processedData1.preTimeStamps;
+                    postTimeStamps1 = processedData1.postTimeStamps;
+                    Count1 = processedData1.count;
+                    Debug.Log($"CountT1 {Count1}");
+                    sendCount1 = processedData1.sendCount;
 
-                    Count += postTimeStamps.Count;
-                    Debug.Log("Count: " + Count);
-
-                    shouldUpdateCount = true;
-
-                    sendCount = 1;
+                    shouldUpdateCount1 = true;
                 }
-                else
+
+                else if (target == 2)
                 {
-                    preTimeStamps = DeepCopyDynamicList(postTimeStamps);
-                    postTimeStamps = ParseStringToDynamicList(e.Data);
-                    string preTimeStampsString = string.Join(", ", preTimeStamps.Select(ts => ts.ToString("yyyy-MM-dd HH:mm:ss.fff")));
-                    Debug.Log("preTimeStamps: " + preTimeStampsString);
-                    string postTimeStampsString = string.Join(", ", postTimeStamps.Select(ts => ts.ToString("yyyy-MM-dd HH:mm:ss.fff")));
-                    Debug.Log("postTimeStamps: " + postTimeStampsString);
+                    processedData2 = dataProcessor.Count(parsedData, postTimeStamps2, sendCount2, Count2);
+                    preTimeStamps2 = processedData2.preTimeStamps;
+                    postTimeStamps2 = processedData2.postTimeStamps;
+                    Count2 = processedData2.count;
+                    sendCount2 = processedData2.sendCount;
 
-                    CompareTimestamps();
-                    Debug.Log("Count: " + Count);
-
-                    shouldUpdateCount = true;
+                    shouldUpdateCount2 = true;
                 }
             }
             catch (Exception ex)
@@ -131,111 +145,44 @@ public class MainController : MonoBehaviour
         // 接続クローズ時のイベント
         wsRegister.OnClose += (sender, e) =>
         {
-            Debug.Log("WebSocket接続が閉じられました。");
+            Debug.Log("WebSocket1接続が閉じられました。");
         };
 
         // 接続クローズ時のイベント
         wsForDataSend.OnClose += (sender, e) =>
         {
-            Debug.Log("WebSocket接続が閉じられました。");
+            Debug.Log("WebSocket2接続が閉じられました。");
         };
 
         // WebSocketに接続
         wsRegister.Connect();
         wsForDataSend.Connect();
     }
-
-    List<DateTime> ParseStringToDynamicList(string data)
-    {
-        List<DateTime> result = new List<DateTime>();
-
-        try
-        {
-            // JSONを解析してTimeStampsを取得
-            JObject jsonData = JObject.Parse(data);
-            JArray timeStampsArray = (JArray)jsonData["TimeStamps"];  // TimeStamps配列を取得
-
-            // TimeStampsをDateTimeのリストに変換
-            foreach (string item in timeStampsArray)
-            {
-                string trimmedItem = item.Trim().Trim('"');  // 余分なスペースと " を除去
-
-                // 6桁のマイクロ秒が含まれている場合、3桁に切り詰める
-                int dotIndex = trimmedItem.LastIndexOf('.');
-                if (dotIndex != -1 && trimmedItem.Length - dotIndex - 1 > 3)
-                {
-                    // 3桁まで残して切り詰める
-                    trimmedItem = trimmedItem.Substring(0, dotIndex + 4);  // 小数点+3桁
-                }
-
-                // パース処理
-                if (DateTime.TryParseExact(trimmedItem, "yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedDate))
-                {
-                    result.Add(parsedDate);
-                }
-                else
-                {
-                    Debug.LogWarning($"無効な日時フォーマット: {trimmedItem}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError($"JSON解析に失敗しました: {ex.Message}");
-        }
-
-        return result;
-    }
-
-
-
-    List<DateTime> DeepCopyDynamicList(List<DateTime> source)
-    {
-        return new List<DateTime>(source);
-    }
-
-    void OnDestroy()
-    {
-        // WebSocket接続を閉じる
-        if (wsRegister != null && wsRegister.IsAlive && wsForDataSend != null && wsForDataSend.IsAlive)
-        {
-            wsRegister.Close();
-            wsForDataSend.Close();
-            Debug.Log("WebSocket接続を閉じました。");
-        }
-    }
-
-    void CompareTimestamps()
-    {
-        // postTimeStamps と preTimeStamps の共通要素を取得
-        var commonTimestamps = preTimeStamps.Intersect(postTimeStamps).ToList();
-
-        // 共通部分のログ出力
-        if (commonTimestamps.Count > 0)
-        {
-            Count += postTimeStamps.Count - commonTimestamps.Count;
-            Debug.Log("共通のタイムスタンプ:");
-            foreach (var timestamp in commonTimestamps)
-            {
-                Debug.Log(timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff"));
-            }
-        }
-        else
-        {
-            Count += preTimeStamps.Count;
-            Debug.Log("共通するタイムスタンプはありません。");
-        }
-    }
-
     void Update()
     {
-        if (shouldUpdateCount)
+        if (shouldUpdateCount1)
         {
-            shouldUpdateCount = false;  // フラグをリセット
+            shouldUpdateCount1 = false;  // フラグをリセット
 
             if (counterController1 != null)
             {
-                counterController1.SetCount(Count);  // メインスレッド上で処理
+                Debug.Log($"AAA {Count1}");
+                counterController1.SetCount(Count1);  // メインスレッド上で処理
+            }
+            else
+            {
+                Debug.LogError("counterControllerがnullです。");
+            }
+        }
+
+        if (shouldUpdateCount2)
+        {
+            shouldUpdateCount2 = false;  // フラグをリセット
+
+            if (counterController2 != null)
+            {
+                Debug.Log($"CCC {Count2}");
+                counterController2.SetCount(Count2);  // メインスレッド上で処理
             }
             else
             {

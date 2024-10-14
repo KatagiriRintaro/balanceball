@@ -46,29 +46,6 @@ public class CounterController : MonoBehaviour
         SetCount(0);
     }
 
-    // void Update()
-    // { 
-    //     if (Input.GetKeyDown(KeyCode.Space))
-    //     {
-    //         Count++;
-    //         onesPlace = Count % 10;
-    //         tensPlace = (Count / 10) % 10;
-    //         hundredsPlace = (Count / 100) % 10;
-
-    //         UpdateNumberDisplay("OnesPlace", onesPlace);
-
-    //         if (Count >= 10)
-    //         {
-    //             UpdateNumberDisplay("TensPlace", tensPlace);
-
-    //         }
-    //         if (Count >= 100)
-    //         {
-    //             UpdateNumberDisplay("HundredsPlace", hundredsPlace);
-    //         }
-    //     }
-    // }
-
     public void SetCount(int count)
     {
         Debug.Log("Count is set to: " + count);
@@ -94,11 +71,15 @@ public class CounterController : MonoBehaviour
 
     void UpdateNumberDisplay(string placeTag, int number)
     {
-        GameObject[] placeObjects = GameObject.FindGameObjectsWithTag(placeTag);
+        // GameObject[] placeObjects = GameObject.FindGameObjectsWithTag(placeTag);
+        Transform[] placeObjects = GetComponentsInChildren<Transform>()
+        .Where(t => t.gameObject.CompareTag(placeTag))  // タグでフィルタリング
+        .ToArray();
 
         if (placeObjects != null && placeObjects.Length > 0)
         {
-            foreach (GameObject placeObject in placeObjects)
+            // foreach (GameObject placeObject in placeObjects)
+            foreach (Transform placeObject in placeObjects)
             {
 
                 // placeObject 内の NumberTextController を取得

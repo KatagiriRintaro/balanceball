@@ -6,6 +6,7 @@ import 'package:measure_app/function/websocketManager.dart';
 import 'package:measure_app/widget/operation_button.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:flutter_udid/flutter_udid.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 class CountGameHomepage extends StatefulWidget {
   const CountGameHomepage({super.key});
@@ -19,6 +20,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
   bool _isMeasuring = false;
   bool _isRegistering = false;
   bool _isSetting = false;
+  bool _isOver = false;
   String _udid = '';
   late Timer _timer;
   late Timer _updateTimer;
@@ -38,7 +40,8 @@ class CountGameHomepageState extends State<CountGameHomepage> {
 
   List<List<Object>> _measurementData = [];
   List<List<dynamic>> _dataForSend = [];
-  String measurementDataJson = ' ';
+  String udidJson = "";
+  String measurementDataJson = '';
   Map<String, dynamic> decodedData = {};
   List<dynamic> resultData = [];
   WebSocketChannel? channel;
@@ -46,10 +49,9 @@ class CountGameHomepageState extends State<CountGameHomepage> {
   @override
   void initState() {
     super.initState();
-    setState(() {
-      _wsManagerRegister.connect();
-      getDeviceUDID();
-    });
+    _wsManagerRegister.connect();
+    getDeviceUDID();
+    _listenToMessages();
   }
 
   @override
@@ -68,32 +70,44 @@ class CountGameHomepageState extends State<CountGameHomepage> {
       _udid = await FlutterUdid.udid; // デバイスのUDIDを取得
       print("Device UDID: $_udid");
 
-      _wsManagerRegister.sendUDID(_udid);
+      udidJson = json.encode(_udid);
 
-      _wsManagerRegister.receiveData()?.listen((response) {
-        print('受信データ: $response');
-        if (response == "Setting OK") {
-          setState(() {
-            _isSetting = true;
-          });
-        } else if (response == "Setting Not Yet") {
-          setState(() {
-            _isRegistering = true;
-          });
-        } else if (response == "GameStart") {
-          _isCounting = true;
-        }
-
-        setState(() {}); // UIを更新
-      }, onError: (error) {
-        print('エラーが発生しました: $error');
-      });
+      _wsManagerRegister.sendUDID(udidJson);
     } catch (e) {
       print("Failed to get UDID: $e");
       setState(() {
         _isRegistering = false;
       });
     }
+  }
+
+  // WebSocketメッセージを常にリスンするメソッド
+  void _listenToMessages() {
+    _wsManagerRegister.receiveData()?.listen((response) {
+      String trimmedResponse = json.decode(response).trim();
+      print('受信データ: $trimmedResponse');
+      if (trimmedResponse.contains("SettingOK")) {
+        setState(() {
+          _isRegistering = false;
+          _isSetting = true;
+        });
+      } else if (trimmedResponse.contains("SettingNotYet")) {
+        setState(() {
+          _isRegistering = true;
+        });
+      } else if (trimmedResponse == "GameStart") {
+        _isSetting = false;
+        _startCountdown();
+      } else if (trimmedResponse == "Over") {
+        _isOver = true;
+      } else {
+        print("Unknown message received: $trimmedResponse");
+      }
+
+      setState(() {}); // UIを更新
+    }, onError: (error) {
+      print('エラーが発生しました: $error');
+    });
   }
 
   void _startCountdown() {
@@ -208,13 +222,13 @@ class CountGameHomepageState extends State<CountGameHomepage> {
       _wsManagerSendData.sendData(jsonDataWithUdid);
 
       // サーバからの応答を待機
-      _wsManagerSendData.receiveData()?.listen((response) {
-        // print('受信データ: $response');
+      // _wsManagerSendData.receiveData()?.listen((response) {
+      //   // print('受信データ: $response');
 
-        setState(() {}); // UIを更新
-      }, onError: (error) {
-        print('エラーが発生しました: $error');
-      });
+      //   setState(() {}); // UIを更新
+      // }, onError: (error) {
+      //   print('エラーが発生しました: $error');
+      // });
     } catch (e) {
       print('エラーが発生しました: $e');
     } finally {
@@ -223,12 +237,8 @@ class CountGameHomepageState extends State<CountGameHomepage> {
   }
 
   void _gameStart() async {
-    _wsManagerRegister.sendData("Start$_udid");
-    _wsManagerRegister.receiveData()?.listen((response) {
-      if (response == "GameStart") {
-        _startCountdown();
-      }
-    });
+    final String sendData = json.encode("Start$_udid");
+    _wsManagerRegister.sendData(sendData);
   }
 
   @override
@@ -242,52 +252,70 @@ class CountGameHomepageState extends State<CountGameHomepage> {
             ? const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
+                  AutoSizeText(
                     '対戦相手探し中・・・',
                     style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    minFontSize: 20,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               )
-            : _isSetting
-                ? Column(
+            : _isOver
+                ? const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        "ゲームを開始しますか？",
+                      AutoSizeText(
+                        '定員オーバーです\n後でやり直してください',
                         style: TextStyle(
                             fontSize: 40, fontWeight: FontWeight.bold),
-                      ),
-                      OperationButton(
-                        onPressed: _gameStart,
-                        buttonText: "はい",
+                        maxLines: 2,
+                        minFontSize: 20,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   )
-                : _isCounting
-                    ? Text(
-                        '$_countdown',
-                        style: const TextStyle(
-                            fontSize: 50, fontWeight: FontWeight.bold),
-                      )
-                    : _isMeasuring
-                        ? const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '計測中...',
-                                style: TextStyle(
-                                    fontSize: 40, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              OperationButton(
-                                  onPressed: _startCountdown,
-                                  buttonText: '計測開始'),
-                            ],
+                : _isSetting
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            "ゲームを開始しますか？",
+                            style: TextStyle(
+                                fontSize: 30, fontWeight: FontWeight.bold),
                           ),
+                          OperationButton(
+                            onPressed: _gameStart,
+                            buttonText: "はい",
+                          ),
+                        ],
+                      )
+                    : _isCounting
+                        ? Text(
+                            '$_countdown',
+                            style: const TextStyle(
+                                fontSize: 50, fontWeight: FontWeight.bold),
+                          )
+                        : _isMeasuring
+                            ? const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '計測中...',
+                                    style: TextStyle(
+                                        fontSize: 40,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              )
+                            : const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // OperationButton(
+                                  //     onPressed: _startCountdown,
+                                  //     buttonText: '計測開始'),
+                                ],
+                              ),
       ),
     );
   }
