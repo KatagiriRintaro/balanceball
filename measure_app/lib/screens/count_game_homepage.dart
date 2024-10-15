@@ -21,6 +21,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
   bool _isRegistering = false;
   bool _isSetting = false;
   bool _isOver = false;
+  bool _isRestarting = false;
   String _udid = '';
   late Timer _timer;
   late Timer _updateTimer;
@@ -132,7 +133,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
     setState(() {
       _isCounting = false;
       _isMeasuring = true;
-      _countdown = 2;
+      _countdown = 5;
 
       _magnetometerController.startMeasurement();
 
@@ -150,52 +151,54 @@ class CountGameHomepageState extends State<CountGameHomepage> {
           if (_sendCount == 0 &&
               _measurementData.length ==
                   (_sendDataUnit * (1000 / milliseconds)).toInt()) {
-            final preDataForSend = _measurementData.map((data) {
-              return [
-                (data[0] as DateTime)
-                    .toIso8601String()
-                    .replaceAll('T', ' '), // DateTimeをISO8601形式の文字列に変換
-                data[1], // x
-                data[2], // y
-                data[3], // z
-                data[4],
-              ];
-            }).toList();
-            _dataForSend = preDataForSend
-                .map((innerList) => List<dynamic>.from(innerList))
-                .toList();
-            measurementDataJson = json.encode(_dataForSend);
-            _sendMeasureData();
-            measurementDataJson = "";
-            _sendCount += 1;
+            _setSendMeasureData(_measurementData, 0);
+            // final preDataForSend = _measurementData.map((data) {
+            //   return [
+            //     (data[0] as DateTime)
+            //         .toIso8601String()
+            //         .replaceAll('T', ' '), // DateTimeをISO8601形式の文字列に変換
+            //     data[1], // x
+            //     data[2], // y
+            //     data[3], // z
+            //     data[4],
+            //   ];
+            // }).toList();
+            // _dataForSend = preDataForSend
+            //     .map((innerList) => List<dynamic>.from(innerList))
+            //     .toList();
+            // measurementDataJson = json.encode(_dataForSend);
+            // _sendMeasureData();
+            // measurementDataJson = "";
+            // _sendCount += 1;
           }
 
           if (_measurementData.length ==
               (_sendDataUnit * (1000 / milliseconds) * (1 + _slidingRate))
                   .toInt()) {
-            final preDataForSend = _measurementData.map((data) {
-              return [
-                (data[0] as DateTime)
-                    .toIso8601String()
-                    .replaceAll('T', ' '), // DateTimeをISO8601形式の文字列に変換
-                data[1], // x
-                data[2], // y
-                data[3], // z
-                data[4],
-              ];
-            }).toList();
-            _dataForSend = preDataForSend
-                .sublist((_measurementData.length -
-                        _sendDataUnit * (1000 / milliseconds))
-                    .toInt())
-                .map((innerList) => List<dynamic>.from(innerList))
-                .toList();
-            measurementDataJson = json.encode(_dataForSend);
-            _measurementData = _measurementData.sublist(
-                (_sendDataUnit * (1000 / milliseconds) * _slidingRate).toInt());
-            _sendMeasureData();
-            measurementDataJson = "";
-            _sendCount += 1;
+            _setSendMeasureData(_measurementData, 1);
+            // final preDataForSend = _measurementData.map((data) {
+            //   return [
+            //     (data[0] as DateTime)
+            //         .toIso8601String()
+            //         .replaceAll('T', ' '), // DateTimeをISO8601形式の文字列に変換
+            //     data[1], // x
+            //     data[2], // y
+            //     data[3], // z
+            //     data[4],
+            //   ];
+            // }).toList();
+            // _dataForSend = preDataForSend
+            //     .sublist((_measurementData.length -
+            //             _sendDataUnit * (1000 / milliseconds))
+            //         .toInt())
+            //     .map((innerList) => List<dynamic>.from(innerList))
+            //     .toList();
+            // measurementDataJson = json.encode(_dataForSend);
+            // _measurementData = _measurementData.sublist(
+            //     (_sendDataUnit * (1000 / milliseconds) * _slidingRate).toInt());
+            // _sendMeasureData();
+            // measurementDataJson = "";
+            // _sendCount += 1;
           }
         });
       });
@@ -203,6 +206,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
 
     Future.delayed(Duration(seconds: _measurementTime), () {
       setState(() {
+        _setSendMeasureData(_measurementData, 0);
         _isMeasuring = false; // 計測終了
         _measurementData = [];
       });
@@ -210,7 +214,42 @@ class CountGameHomepageState extends State<CountGameHomepage> {
       // 計測を終了し、グラフの更新も停止
       _updateTimer.cancel();
       _magnetometerController.stopShowMeasurement();
+      _wsManagerRegister.disconnect();
+      _wsManagerSendData.disconnect();
+      _isRestarting = true;
     });
+  }
+
+  void _setSendMeasureData(List<List<Object>> measurementData, int sendState) {
+    final preDataForSend = _measurementData.map((data) {
+      return [
+        (data[0] as DateTime)
+            .toIso8601String()
+            .replaceAll('T', ' '), // DateTimeをISO8601形式の文字列に変換
+        data[1], // x
+        data[2], // y
+        data[3], // z
+        data[4],
+      ];
+    }).toList();
+    if (sendState == 0) {
+      _dataForSend = preDataForSend
+          .map((innerList) => List<dynamic>.from(innerList))
+          .toList();
+    } else {
+      _dataForSend = preDataForSend
+          .sublist(
+              (_measurementData.length - _sendDataUnit * (1000 / milliseconds))
+                  .toInt())
+          .map((innerList) => List<dynamic>.from(innerList))
+          .toList();
+      _measurementData = _measurementData.sublist(
+          (_sendDataUnit * (1000 / milliseconds) * _slidingRate).toInt());
+    }
+    measurementDataJson = json.encode(_dataForSend);
+    _sendMeasureData();
+    measurementDataJson = "";
+    _sendCount += 1;
   }
 
   void _sendMeasureData() async {
@@ -220,15 +259,6 @@ class CountGameHomepageState extends State<CountGameHomepage> {
       String jsonDataWithUdid = json.encode(dataWithUdid);
       // データ送信
       _wsManagerSendData.sendData(jsonDataWithUdid);
-
-      // サーバからの応答を待機
-      // _wsManagerSendData.receiveData()?.listen((response) {
-      //   // print('受信データ: $response');
-
-      //   setState(() {}); // UIを更新
-      // }, onError: (error) {
-      //   print('エラーが発生しました: $error');
-      // });
     } catch (e) {
       print('エラーが発生しました: $e');
     } finally {
@@ -239,6 +269,17 @@ class CountGameHomepageState extends State<CountGameHomepage> {
   void _gameStart() async {
     final String sendData = json.encode("Start$_udid");
     _wsManagerRegister.sendData(sendData);
+  }
+
+  void _restart() {
+    _isRestarting = false;
+    _wsManagerRegister.connect();
+    getDeviceUDID();
+    _listenToMessages();
+  }
+
+  void _back() {
+    Navigator.of(context).pop();
   }
 
   @override
@@ -308,14 +349,41 @@ class CountGameHomepageState extends State<CountGameHomepage> {
                                   ),
                                 ],
                               )
-                            : const Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  // OperationButton(
-                                  //     onPressed: _startCountdown,
-                                  //     buttonText: '計測開始'),
-                                ],
-                              ),
+                            : _isRestarting
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const AutoSizeText(
+                                        'もう一度やりますか？',
+                                        style: TextStyle(
+                                            fontSize: 40,
+                                            fontWeight: FontWeight.bold),
+                                        maxLines: 2,
+                                        minFontSize: 20,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Row(
+                                        children: [
+                                          OperationButton(
+                                              onPressed: _restart,
+                                              buttonText: '開始する'),
+                                          const SizedBox(width: 20),
+                                          OperationButton(
+                                            onPressed: _back,
+                                            buttonText: "戻る",
+                                          )
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                : const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      // OperationButton(
+                                      //     onPressed: _startCountdown,
+                                      //     buttonText: '計測開始'),
+                                    ],
+                                  ),
       ),
     );
   }
