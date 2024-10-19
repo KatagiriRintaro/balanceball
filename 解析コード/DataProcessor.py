@@ -20,6 +20,8 @@ class DataProcessor:
         self.sliding_window = sliding_window
         self.training = ['bounce', 'walk', 'sit', 'extension', 'knee', 'roll']
         self.posture = ['daru', 'shan']
+        self.all_file_feature_df = pd.DataFrame(columns = self.feature_df.columns)
+        self.all_file_raw_df = pd.DataFrame()
 
     def apply_time(self, time):
         digit_count = len(str(time))
@@ -110,8 +112,6 @@ class DataProcessor:
         return features
 
     def importData(self):
-        all_file_feature_df = pd.DataFrame(columns = self.feature_df.columns)
-        all_file_raw_df = pd.DataFrame()
         mag_files = os.listdir(self.mag_folder_path)
         zip_files = [file for file in mag_files if file.endswith('.zip')]
         acc_files = os.listdir(self.acc_folder_path)
@@ -122,7 +122,7 @@ class DataProcessor:
                 file_list = zip_ref.namelist()
 
                 for file_name in file_list:
-                    if file_name.endswith('Magnetometer.csv'):
+                    if file_name.endswith('MagnetometerUncalibrated.csv'):
                         with zip_ref.open(file_name) as file:
                             mag_data_df = pd.read_csv(BytesIO(file.read()))
                 if mag_data_df is not None and not mag_data_df.empty:
@@ -208,7 +208,7 @@ class DataProcessor:
                                     if self.training[j] in zip_file_name:
                                         a_raw_data.append(self.training[j])
                                         a_feature_data.append(self.training[j])
-                                    t = self.training[j]
+                                        t = self.training[j]
                                 for j in range(len(self.subject_name)):
                                     if self.subject_name[j] in zip_file_name:
                                         a_raw_data.append(j+1)
@@ -234,13 +234,36 @@ class DataProcessor:
                                 i += 1
                 
                 a_file_raw_df = a_file_raw_df.dropna(how='all', axis=1)
-                all_file_raw_df = all_file_raw_df.dropna(how='all', axis=1)
-                all_file_raw_df = pd.concat([all_file_raw_df, a_file_raw_df], axis=1)
+                self.all_file_raw_df = self.all_file_raw_df.dropna(how='all', axis=1)
+                self.all_file_raw_df = pd.concat([self.all_file_raw_df, a_file_raw_df], axis=1)
                 a_file_feature_df = a_file_feature_df.dropna(how='all', axis=1)
-                all_file_feature_df = all_file_feature_df.dropna(how='all', axis=1)
-                all_file_feature_df = pd.concat([all_file_feature_df, a_file_feature_df], axis=0)
+                self.all_file_feature_df = self.all_file_feature_df.dropna(how='all', axis=1)
+                self.all_file_feature_df = pd.concat([self.all_file_feature_df, a_file_feature_df], axis=0)
+        print(self.all_file_raw_df.shape)
         
-        all_file_raw_df = all_file_raw_df.reset_index(drop=True)
-        all_file_feature_df = all_file_feature_df.reset_index(drop=True)
+        self.all_file_raw_df = self.all_file_raw_df.reset_index(drop=True)
+        self.all_file_feature_df = self.all_file_feature_df.reset_index(drop=True)
 
-        return all_file_raw_df, all_file_feature_df
+        return self.all_file_raw_df, self.all_file_feature_df
+    
+    def extractData(self, sensor, type):
+        self.all_file_raw_df, self.all_file_feature_df = self.importData()
+        if sensor == "mag":
+            if type == "raw":
+                extractedData1 = self.all_file_raw_df.iloc[ : self.sampling_rate * self.data_seconds * 3]
+                extractedData2 = self.all_file_raw_df.iloc[-5:]
+                extractedData = pd.concat([extractedData1, extractedData2], axis=0)
+            elif type == "feature":
+                extractedData1 = self.all_file_feature_df.iloc[:, :54]
+                extractedData2 = self.all_file_feature_df.iloc[:, -5:]
+                extractedData = pd.concat([extractedData1, extractedData2], axis=1)
+
+        elif sensor == "acc":
+            if type == "raw":
+                extractedData = self.all_file_raw_df.iloc[self.sampling_rate * self.data_seconds * 3 : ]
+            elif type == "feature":
+                extractedData = self.all_file_feature_df.iloc[:, 54:]
+        
+        return self.all_file_raw_df, self.all_file_feature_df, extractedData
+
+
