@@ -52,11 +52,13 @@ def cnn_model(InputSize1, InputSize2, NumClass, batch_size, epochs, sig_cnn_trai
     print("finish!")
     return learning_process, model
 
-def shuffle(cnn_data, classlabel):
+def shuffle(cnn_data, TrainLabel, PostureLabel, TrainPostureLabel):
     original_indices = np.arange(len(cnn_data))
     # インデックスをシャッフル
     np.random.shuffle(original_indices)
     # データをシャッフルしたインデックスに基づいて並べ替え
     cnn_data = cnn_data[original_indices, :, :, :]
-    classlabel = classlabel[original_indices, :]
-    return cnn_data, classlabel
+    TrainLabel = TrainLabel[original_indices, :]
+    PostureLabel = PostureLabel[original_indices, :]
+    TrainPostureLabel = TrainPostureLabel[original_indices, :]
+    return cnn_data, TrainLabel, PostureLabel, TrainPostureLabel
