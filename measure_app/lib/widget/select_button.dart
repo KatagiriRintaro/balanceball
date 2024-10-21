@@ -5,14 +5,15 @@ class SelectButton extends StatelessWidget {
   final String buttonText; // ボタンのテキスト
   final IconData? icon;
   final Widget? nextPage;
+  final Size? buttonSize;
 
   // コンストラクタ
-  const SelectButton({
-    super.key,
-    required this.nextPage,
-    this.buttonText = '計測をやり直す',
-    this.icon = Icons.tag_faces,
-  });
+  const SelectButton(
+      {super.key,
+      required this.nextPage,
+      this.buttonText = '計測をやり直す',
+      this.icon = Icons.tag_faces,
+      this.buttonSize});
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +31,7 @@ class SelectButton extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
+              minimumSize: buttonSize ?? const Size(200, 50),
             ),
             onPressed: () {
               if (nextPage != null) {
