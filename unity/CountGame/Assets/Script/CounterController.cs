@@ -57,15 +57,17 @@ public class CounterController : MonoBehaviour
         Debug.Log($"1 {onesPlace} 10 {tensPlace} 100 {hundredsPlace}");
 
         UpdateNumberDisplay("OnesPlace", onesPlace);
+        UpdateNumberDisplay("TensPlace", tensPlace);
+        UpdateNumberDisplay("HundredsPlace", hundredsPlace);
 
-        if (count >= 10)
-        {
-            UpdateNumberDisplay("TensPlace", tensPlace);
-        }
-        if (count >= 100)
-        {
-            UpdateNumberDisplay("HundredsPlace", hundredsPlace);
-        }
+        // if (count >= 10)
+        // {
+        //     UpdateNumberDisplay("TensPlace", tensPlace);
+        // }
+        // if (count >= 100)
+        // {
+        //     UpdateNumberDisplay("HundredsPlace", hundredsPlace);
+        // }
 
         // Debug.Log("ASA");
     }
