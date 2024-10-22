@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:http_parser/http_parser.dart';
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert';
 import 'package:measure_app/function/magnetometer_measure_controller.dart';
 import 'package:measure_app/widget/operation_button.dart';
-import 'package:path/path.dart';
+// import 'package:path/path.dart';
 import 'package:http/http.dart' as http;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:path_provider/path_provider.dart';
@@ -19,11 +21,12 @@ class GetMagnetometerAR extends StatefulWidget {
 class GetMagnetometerARState extends State<GetMagnetometerAR> {
   bool _isCalibrating = false;
   bool _isMeasuring = false;
-  int _millSecondsPerFrame = 10;
   List<CameraDescription>? _cameras;
-  List<String> _imagePaths = [];
-  Timer? _timer;
-  List<List<Object>> _measurementData = [];
+  List<String> _videoPaths = [];
+  // Timer? _timer;
+  String magDataJson = "";
+  String videoPath = "";
+  List<List<dynamic>> _measurementData = [];
   late CameraController _controller;
   final MagnetometerMeasureController _magnetometerMeasureController =
       MagnetometerMeasureController();
@@ -61,56 +64,114 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
 
   Future<void> _startMeasurement() async {
     if (!_isMeasuring) {
-      _magnetometerMeasureController.startMeasurement();
       _isMeasuring = true;
 
-      _timer = Timer.periodic(Duration(milliseconds: _millSecondsPerFrame),
-          (timer) async {
-        if (!_isMeasuring) {
-          _timer?.cancel();
-        }
+      try {
+        final directory = await getTemporaryDirectory();
+        videoPath =
+            '${directory.path}/${DateTime.now().microsecondsSinceEpoch}.mp4';
+        await _controller.startVideoRecording();
+        _magnetometerMeasureController.startMeasurement();
+        print("ビデオ録画を開始しました: $videoPath");
+      } catch (e) {
+        print('ビデオ録画の開始に失敗しました: $e');
+      }
 
-        try {
-          final newData = _magnetometerMeasureController.getLatestAllData();
-          if (newData.length == 5) {
-            _measurementData.add(newData.cast<Object>());
-          }
-          final image = await _controller.takePicture();
-          final directory = await getTemporaryDirectory();
-          final imagePath =
-              '${directory.path}/${DateTime.now().microsecondsSinceEpoch}.jpg';
-          await image.saveTo(imagePath);
-          _imagePaths.add(imagePath);
-        } catch (e) {
-          print('フレームのキャプチャに失敗しました: $e');
-        }
-      });
+      // _timer = Timer.periodic(Duration(milliseconds: _millSecondsPerFrame),
+      //     (timer) async {
+      //   if (!_isMeasuring) {
+      //     _timer?.cancel();
+      //   }
+      // });
     }
   }
 
   Future<void> _stopMeasurement() async {
     _isMeasuring = false;
+
+    try {
+      final videoFile = await _controller.stopVideoRecording();
+
+      // 保存するファイルのパスを作成
+      final directory = await getTemporaryDirectory();
+      final videoPath =
+          '${directory.path}/${DateTime.now().microsecondsSinceEpoch}.mp4';
+
+      // ファイルをコピーして、元のファイルを削除
+      final newFile = await File(videoFile.path).copy(videoPath);
+      await File(videoFile.path).delete(); // 元のファイルを削除
+
+      print("ビデオ録画が終了しました: ${newFile.path}");
+      _videoPaths.add(newFile.path); // コピー先の新しいパスをリストに追加
+    } catch (e) {
+      print("ビデオ録画の停止に失敗しました: $e");
+    }
+
+    _sendMagDataToServer();
+    _sendVideoToServer();
   }
 
-  Future<void> _sendImagesToServer() async {
-    for (String imagePath in _imagePaths) {
+  Future<void> _sendMagDataToServer() async {
+    _measurementData = _magnetometerMeasureController.stopMeasurementAndGet();
+    final magDataForSend = _measurementData.map((data) {
+      return [
+        (data[0] as DateTime)
+            .toIso8601String()
+            .replaceAll('T', ' '), // DateTimeをISO8601形式の文字列に変換
+        data[1], // x
+        data[2], // y
+        data[3], // z
+        data[4],
+      ];
+    }).toList();
+    magDataJson = json.encode(magDataForSend);
+    // print(magDataJson);
+    try {
+      final magResponse = await http.post(
+        Uri.parse('http://172.16.4.31:5000/upload/mag'),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: magDataJson,
+      );
+      if (magResponse.statusCode == 200) {
+        print('データ送信成功');
+      } else {
+        print('データ送信失敗');
+      }
+    } catch (e) {
+      print('磁気センサデータの送信中にエラーが発生しました: $e');
+    }
+  }
+
+  Future<void> _sendVideoToServer() async {
+    if (_videoPaths.isNotEmpty) {
       try {
-        File imageFile = File(imagePath);
+        String videoPath = _videoPaths.first; // 最初の動画パスを取得
+        File videoFile = File(videoPath);
 
         var request = http.MultipartRequest(
           'POST',
-          Uri.parse('http://your-server-ip:5000/upload'),
+          Uri.parse('http://172.16.4.31:5000/upload/ar'),
         );
-        request.files
-            .add(await http.MultipartFile.fromPath('file', imageFile.path));
-        var response = await request.send();
+
+        request.files.add(await http.MultipartFile.fromPath(
+            'file', videoFile.path,
+            contentType: MediaType('video', 'mp4')));
+
+        var streamedResponse = await request.send();
+        var response = await http.Response.fromStream(streamedResponse);
 
         if (response.statusCode == 200) {
-          print("Image uploaded successfully: $imagePath");
+          print("Video uploaded successfully: $videoPath");
+        } else {
+          print("Failed to upload video: Status code ${response.statusCode}");
         }
       } catch (e) {
-        print("Error uploading image: $imagePath, Error: $e");
+        print("Error uploading video: $e");
       }
+    } else {
+      print("No video available to upload.");
     }
   }
 
@@ -136,10 +197,19 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
                       minFontSize: 20,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    OperationButton(
-                        onPressed: _startMeasurement,
-                        buttonText: "キャリブレーション",
-                        buttonWidth: 300),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        OperationButton(
+                            onPressed: _startMeasurement,
+                            buttonText: "計測開始",
+                            buttonWidth: 150),
+                        OperationButton(
+                            onPressed: _stopMeasurement,
+                            buttonText: "計測終了",
+                            buttonWidth: 150),
+                      ],
+                    )
                   ],
                 )),
     );

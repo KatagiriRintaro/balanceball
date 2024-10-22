@@ -108,7 +108,7 @@ class MeasureStreamDataState extends State<MeasureStreamData> {
 
       // 計測を終了し、グラフの更新も停止
       _updateTimer.cancel();
-      final measurementData = _magnetometerController.stopMeasurement();
+      final measurementData = _magnetometerController.stopMeasurementAndGet();
       // print('A$measurementData');
 
       final measurementDataForJson = measurementData.map((data) {
