@@ -27,7 +27,8 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
   String magDataJson = "";
   String videoPath = "";
   List<List<dynamic>> _measurementData = [];
-  late CameraController _controller;
+  late CameraController _cameraController;
+  TextEditingController _textEditController = TextEditingController();
   final MagnetometerMeasureController _magnetometerMeasureController =
       MagnetometerMeasureController();
 
@@ -39,19 +40,19 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _cameraController.dispose();
     super.dispose();
   }
 
   Future<void> _getCamera() async {
     _cameras = await availableCameras();
     if (_cameras != null && _cameras!.isNotEmpty) {
-      _controller = CameraController(
+      _cameraController = CameraController(
         _cameras![1],
         ResolutionPreset.max,
       );
       try {
-        await _controller.initialize();
+        await _cameraController.initialize();
         setState(() {});
       } catch (e) {
         print("カメラの初期化に失敗しました: $e");
@@ -70,19 +71,12 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
         final directory = await getTemporaryDirectory();
         videoPath =
             '${directory.path}/${DateTime.now().microsecondsSinceEpoch}.mp4';
-        await _controller.startVideoRecording();
+        await _cameraController.startVideoRecording();
         _magnetometerMeasureController.startMeasurement();
         print("ビデオ録画を開始しました: $videoPath");
       } catch (e) {
         print('ビデオ録画の開始に失敗しました: $e');
       }
-
-      // _timer = Timer.periodic(Duration(milliseconds: _millSecondsPerFrame),
-      //     (timer) async {
-      //   if (!_isMeasuring) {
-      //     _timer?.cancel();
-      //   }
-      // });
     }
   }
 
@@ -90,12 +84,12 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
     _isMeasuring = false;
 
     try {
-      final videoFile = await _controller.stopVideoRecording();
+      final videoFile = await _cameraController.stopVideoRecording();
 
       // 保存するファイルのパスを作成
       final directory = await getTemporaryDirectory();
-      final videoPath =
-          '${directory.path}/${DateTime.now().microsecondsSinceEpoch}.mp4';
+      // final videoPath = '${directory.path}/${DateTime.now().microsecondsSinceEpoch}.mp4';
+      final videoPath = '${directory.path}/${_textEditController.text}.mp4';
 
       // ファイルをコピーして、元のファイルを削除
       final newFile = await File(videoFile.path).copy(videoPath);
@@ -124,7 +118,11 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
         data[4],
       ];
     }).toList();
-    magDataJson = json.encode(magDataForSend);
+
+    String fileName = _textEditController.text;
+
+    final requestData = {'file_name': fileName, 'mag_data': magDataForSend};
+
     // print(magDataJson);
     try {
       final magResponse = await http.post(
@@ -132,7 +130,7 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
         headers: {
           "Content-Type": "application/json",
         },
-        body: magDataJson,
+        body: json.encode(requestData),
       );
       if (magResponse.statusCode == 200) {
         print('データ送信成功');
@@ -181,37 +179,43 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
       appBar: AppBar(
         title: const Text("計測"),
       ),
-      body: Center(
-          child: _isCalibrating
-              ? const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AutoSizeText(
-                      '$_cameras',
-                      style:
-                          TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
-                      maxLines: 10,
-                      minFontSize: 20,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        OperationButton(
-                            onPressed: _startMeasurement,
-                            buttonText: "計測開始",
-                            buttonWidth: 150),
-                        OperationButton(
-                            onPressed: _stopMeasurement,
-                            buttonText: "計測終了",
-                            buttonWidth: 150),
-                      ],
-                    )
-                  ],
-                )),
+      body: SingleChildScrollView(
+          child: Center(
+        child: _isCalibrating
+            ? const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    height: 50,
+                  ),
+                  TextField(
+                    controller: _textEditController,
+                    decoration: InputDecoration(
+                        border: OutlineInputBorder(), labelText: "ファイル名を入力"),
+                  ),
+                  SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      OperationButton(
+                          onPressed: _startMeasurement,
+                          buttonText: "計測開始",
+                          buttonWidth: 150),
+                      SizedBox(
+                        width: 50,
+                      ),
+                      OperationButton(
+                          onPressed: _stopMeasurement,
+                          buttonText: "計測終了",
+                          buttonWidth: 150),
+                    ],
+                  )
+                ],
+              ),
+      )),
     );
   }
 }
