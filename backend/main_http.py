@@ -2,7 +2,6 @@ from flask import Flask, request, make_response, jsonify
 from flask_cors import CORS
 from predictor import predictor
 from dotenv import load_dotenv
-import base64
 import pandas as pd
 from werkzeug.utils import secure_filename
 import os
@@ -52,8 +51,10 @@ def predict_balance_ball_training():
 def upload_mag_data():
     try:
         data = request.get_json()
-        df = pd.DataFrame(data, columns=['time', 'x', 'y', 'z', 'elapsed time'])
-        csv_filename = os.path.join(upload_folder, "get.csv")
+        file_name = data.get('file_name')
+        mag_data = data.get('mag_data')
+        df = pd.DataFrame(mag_data, columns=['time', 'x', 'y', 'z', 'elapsed time'])
+        csv_filename = os.path.join(upload_folder, f"{file_name}.csv")
         df.to_csv(csv_filename, index=False)
         print(f"センサーデータをCSVに保存しました: {csv_filename}")
         return "Success", 200  
