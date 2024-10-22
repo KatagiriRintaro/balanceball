@@ -5,7 +5,7 @@ class MagnetometerMeasureController {
   final List<List<dynamic>> _magnetometerData = [];
   List<double> _magnetometerValue = [];
   final List<StreamSubscription<dynamic>> _streamSubscriptions = [];
-  List<dynamic> magnetometerValues = [];
+  List<Object> magnetometerValues = [];
 
   void startMeasurement() {
     DateTime? lastTimestamp;
@@ -31,7 +31,7 @@ class MagnetometerMeasureController {
               currentTime.difference(startTime).inMilliseconds / 1000;
           // print('ElapsedTime : $elapsedTime');
 
-          magnetometerValues = <dynamic>[
+          magnetometerValues = <Object>[
             currentTime,
             event.x,
             event.y,
@@ -51,7 +51,7 @@ class MagnetometerMeasureController {
     );
   }
 
-  List<List<dynamic>> stopMeasurement() {
+  List<List<dynamic>> stopMeasurementAndGet() {
     for (final subscription in _streamSubscriptions) {
       subscription.cancel();
       // print('B$_magnetometerData');
@@ -59,7 +59,7 @@ class MagnetometerMeasureController {
     return _magnetometerData;
   }
 
-  void stopShowMeasurement() {
+  void stopMeasurement() {
     for (final subscription in _streamSubscriptions) {
       subscription.cancel();
     }
@@ -69,7 +69,7 @@ class MagnetometerMeasureController {
     return _magnetometerValue;
   }
 
-  List<dynamic> getLatestAllData() {
+  List<Object> getLatestAllData() {
     return magnetometerValues;
   }
 }

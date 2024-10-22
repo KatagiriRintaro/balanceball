@@ -78,7 +78,7 @@ class ShowStreamState extends State<ShowStreamData> {
   void _stopMeasurement() {
     setState(() {
       _updateTimer.cancel();
-      _magnetometerController.stopShowMeasurement();
+      _magnetometerController.stopMeasurement();
     });
   }
 

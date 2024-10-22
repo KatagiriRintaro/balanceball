@@ -184,7 +184,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
 
       // 計測を終了し、グラフの更新も停止
       _updateTimer.cancel();
-      _magnetometerController.stopShowMeasurement();
+      _magnetometerController.stopMeasurement();
       _measurementData = [];
       _dataForSend = [];
       _isRestarting = true;
