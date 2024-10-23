@@ -110,7 +110,7 @@ class CountGameHomepageState extends State<CountGameHomepage> {
         }
       } else if (decodedResponse is Map<String, dynamic>) {
         _judge = decodedResponse[_udid];
-        print("AA ${_judge}");
+        print("AA $_judge");
       }
 
       setState(() {}); // UIを更新
