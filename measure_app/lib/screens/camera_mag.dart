@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:http_parser/http_parser.dart';
@@ -8,7 +9,6 @@ import 'package:measure_app/function/magnetometer_measure_controller.dart';
 import 'package:measure_app/widget/operation_button.dart';
 // import 'package:path/path.dart';
 import 'package:http/http.dart' as http;
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:path_provider/path_provider.dart';
 
 class GetMagnetometerAR extends StatefulWidget {
@@ -19,23 +19,35 @@ class GetMagnetometerAR extends StatefulWidget {
 }
 
 class GetMagnetometerARState extends State<GetMagnetometerAR> {
-  bool _isCalibrating = false;
   bool _isMeasuring = false;
+  bool _initializing = false;
   List<CameraDescription>? _cameras;
-  List<String> _videoPaths = [];
+  final List<String> _videoPaths = [];
   // Timer? _timer;
   String magDataJson = "";
   String videoPath = "";
+  late DateTime _videoStartTime;
+  late DateTime _sensorStartTime;
+  late DateTime _videoStopTime;
+  late DateTime _sensorStopTime;
   List<List<dynamic>> _measurementData = [];
   late CameraController _cameraController;
-  TextEditingController _textEditController = TextEditingController();
+  final TextEditingController _textEditController = TextEditingController();
   final MagnetometerMeasureController _magnetometerMeasureController =
       MagnetometerMeasureController();
 
   @override
   void initState() {
     super.initState();
-    _getCamera();
+    _initializeCameraAndPrepareRecording();
+  }
+
+  Future<void> _initializeCameraAndPrepareRecording() async {
+    await _getCamera(); // カメラの初期化を待機
+    await _prepareRecording(); // カメラ初期化後にプレ録画の準備を行う
+    setState(() {
+      _initializing = true;
+    });
   }
 
   @override
@@ -49,7 +61,8 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
     if (_cameras != null && _cameras!.isNotEmpty) {
       _cameraController = CameraController(
         _cameras![1],
-        ResolutionPreset.max,
+        ResolutionPreset.medium,
+        enableAudio: false,
       );
       try {
         await _cameraController.initialize();
@@ -57,22 +70,36 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
       } catch (e) {
         print("カメラの初期化に失敗しました: $e");
       }
-      print(_cameras);
     }
   }
 
-  void _Calibration() {}
+  Future<void> _prepareRecording() async {
+    try {
+      await _cameraController.startVideoRecording();
+      await Future.delayed(Duration(seconds: 3)); // 1秒待ってキーフレームを生成
+      await _cameraController.stopVideoRecording();
+      print("録画準備が完了しました");
+    } catch (e) {
+      print('録画準備に失敗しました: $e');
+    }
+  }
 
   Future<void> _startMeasurement() async {
-    if (!_isMeasuring) {
-      _isMeasuring = true;
+    if (!_isMeasuring && _cameraController.value.isInitialized) {
+      setState(() {
+        _initializing = false;
+        _isMeasuring = true;
+      });
 
       try {
         final directory = await getTemporaryDirectory();
         videoPath =
             '${directory.path}/${DateTime.now().microsecondsSinceEpoch}.mp4';
         await _cameraController.startVideoRecording();
+        _videoStartTime = DateTime.now();
         _magnetometerMeasureController.startMeasurement();
+        _sensorStartTime = DateTime.now();
+        print("$_videoStartTime, $_sensorStartTime");
         print("ビデオ録画を開始しました: $videoPath");
       } catch (e) {
         print('ビデオ録画の開始に失敗しました: $e');
@@ -80,11 +107,29 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
     }
   }
 
+  Future<void> getSystemLogs() async {
+    try {
+      // logcat コマンドを実行してログをフィルタリング
+      ProcessResult result = await Process.run('logcat', ['-d', 'CCodec']);
+
+      // ログの出力を取得
+      String logs = result.stdout;
+      print(logs); // ログを表示
+    } catch (e) {
+      print("エラー: $e");
+    }
+  }
+
   Future<void> _stopMeasurement() async {
     _isMeasuring = false;
 
     try {
+      print("SSSSS ${DateTime.now()}");
       final videoFile = await _cameraController.stopVideoRecording();
+      _videoStopTime = DateTime.now();
+      _measurementData = _magnetometerMeasureController.stopMeasurementAndGet();
+      _sensorStopTime = DateTime.now();
+      print("$_videoStopTime, $_sensorStopTime");
 
       // 保存するファイルのパスを作成
       final directory = await getTemporaryDirectory();
@@ -103,10 +148,18 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
 
     _sendMagDataToServer();
     _sendVideoToServer();
+
+    try {
+      _videoPaths.clear(); // 動画パスリストをクリア
+      print("動画のパスとファイルを削除しました: $videoPath");
+    } catch (e) {
+      print("動画ファイルの削除に失敗しました: $e");
+    }
+
+    await _getCamera();
   }
 
   Future<void> _sendMagDataToServer() async {
-    _measurementData = _magnetometerMeasureController.stopMeasurementAndGet();
     final magDataForSend = _measurementData.map((data) {
       return [
         (data[0] as DateTime)
@@ -134,6 +187,7 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
       );
       if (magResponse.statusCode == 200) {
         print('データ送信成功');
+        _measurementData.clear();
       } else {
         print('データ送信失敗');
       }
@@ -181,41 +235,90 @@ class GetMagnetometerARState extends State<GetMagnetometerAR> {
       ),
       body: SingleChildScrollView(
           child: Center(
-        child: _isCalibrating
-            ? const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: 50,
-                  ),
-                  TextField(
-                    controller: _textEditController,
-                    decoration: InputDecoration(
-                        border: OutlineInputBorder(), labelText: "ファイル名を入力"),
-                  ),
-                  SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      OperationButton(
-                          onPressed: _startMeasurement,
-                          buttonText: "計測開始",
-                          buttonWidth: 150),
-                      SizedBox(
-                        width: 50,
-                      ),
-                      OperationButton(
-                          onPressed: _stopMeasurement,
-                          buttonText: "計測終了",
-                          buttonWidth: 150),
-                    ],
-                  )
-                ],
-              ),
-      )),
+              child: _initializing
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          height: 50,
+                        ),
+                        TextField(
+                            controller: _textEditController,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(),
+                              labelText: "ファイル名を入力",
+                            ),
+                            onChanged: (text) {
+                              setState(() {});
+                            }),
+                        SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            OperationButton(
+                                onPressed: _startMeasurement,
+                                buttonText: "計測開始",
+                                buttonWidth: 150),
+                            SizedBox(
+                              width: 50,
+                            ),
+                            OperationButton(
+                                onPressed: _stopMeasurement,
+                                buttonText: "計測終了",
+                                buttonWidth: 150),
+                          ],
+                        )
+                      ],
+                    )
+                  : _isMeasuring
+                      ? Center(
+                          child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (_cameraController.value.isInitialized)
+                              SizedBox(
+                                height:
+                                    MediaQuery.of(context).size.height * 0.05,
+                              ),
+                            SizedBox(
+                              width: double.infinity,
+                              height: MediaQuery.of(context).size.height * 0.8,
+                              child: CameraPreview(
+                                  _cameraController), // カメラのプレビューを表示
+                            ),
+                            // Row(
+                            //   mainAxisAlignment: MainAxisAlignment.center,
+                            //   children: [
+                            //     ElevatedButton(
+                            //       onPressed: _isRecording ? null : _startRecording,
+                            //       child: Text('録画開始'),
+                            //     ),
+                            //     SizedBox(width: 20),
+                            //     ElevatedButton(
+                            //       onPressed: _isRecording ? _stopRecording : null,
+                            //       child: Text('録画停止'),
+                            //     ),
+                            //   ],
+                            // ),
+                          ],
+                        ))
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              height: 100,
+                            ),
+                            AutoSizeText(
+                              "カメラの初期化中・・・",
+                              style: TextStyle(
+                                  fontSize: 40, fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              minFontSize: 20,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ))),
     );
   }
 }

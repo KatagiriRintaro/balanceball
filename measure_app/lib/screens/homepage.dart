@@ -11,45 +11,46 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-          // title: const Text('Balance Ball Training Measure')
-          ),
-      body: const Column(
-        children: [
-          Align(
-            alignment: Alignment.center,
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Text('Balance Ball Training Measure',
-                  style: TextStyle(fontSize: 24)),
+        appBar: AppBar(
+            // title: const Text('Balance Ball Training Measure')
             ),
+        body: SingleChildScrollView(
+          child: const Column(
+            children: [
+              Align(
+                alignment: Alignment.center,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Text('Balance Ball Training Measure',
+                      style: TextStyle(fontSize: 24)),
+                ),
+              ),
+              SelectButton(
+                nextPage: CountGameHomepage(),
+                buttonText: 'カウントゲーム',
+                icon: Icons.videogame_asset,
+                buttonSize: Size(350, 80),
+              ),
+              SelectButton(
+                nextPage: SelectTraining(),
+                buttonText: 'バランスボールトレーニング',
+                icon: Icons.accessibility,
+                buttonSize: Size(350, 80),
+              ),
+              SelectButton(
+                nextPage: GetMagnetometerAR(),
+                buttonText: 'カメラ',
+                icon: Icons.camera_alt,
+                buttonSize: Size(350, 80),
+              ),
+              SelectButton(
+                nextPage: ShowStreamData(),
+                buttonText: '磁力センサデータの確認',
+                icon: Icons.timeline,
+                buttonSize: Size(350, 80),
+              ),
+            ],
           ),
-          SelectButton(
-            nextPage: CountGameHomepage(),
-            buttonText: 'カウントゲーム',
-            icon: Icons.videogame_asset,
-            buttonSize: Size(350, 80),
-          ),
-          SelectButton(
-            nextPage: SelectTraining(),
-            buttonText: 'バランスボールトレーニング',
-            icon: Icons.accessibility,
-            buttonSize: Size(350, 80),
-          ),
-          SelectButton(
-            nextPage: GetMagnetometerAR(),
-            buttonText: 'カメラ',
-            icon: Icons.camera_alt,
-            buttonSize: Size(350, 80),
-          ),
-          SelectButton(
-            nextPage: ShowStreamData(),
-            buttonText: '磁力センサデータの確認',
-            icon: Icons.timeline,
-            buttonSize: Size(350, 80),
-          ),
-        ],
-      ),
-    );
+        ));
   }
 }
